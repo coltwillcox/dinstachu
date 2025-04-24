@@ -45,15 +45,26 @@ fn main() -> Result<()> {
         .iter()
         .map(|entry| {
             let path = entry.path();
-            let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("");
-            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+            let mut name = path
+                .file_stem()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
+                .to_string();
+            if path.is_dir() {
+                name = format!("[{}]", name)
+            }
+            let extension = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_string();
             let metadata = entry.metadata().ok();
-            let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+            let size = format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0));
 
             Row::new(vec![
-                Cell::from(name.to_string()),
-                Cell::from(extension.to_string()),
-                Cell::from(format_size(size)),
+                Cell::from(name),
+                Cell::from(extension),
+                Cell::from(size),
             ])
         })
         .collect();
