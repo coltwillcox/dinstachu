@@ -22,14 +22,14 @@ const COLOR_BORDER: Color = Color::Magenta;
 const COLOR_SELECTED_BACKGROUND_INACTIVE: Color = Color::DarkGray;
 const COLOR_SELECTED_BACKGROUND: Color = Color::LightMagenta;
 const COLOR_SELECTED_FOREGROUND: Color = Color::Black;
+const COLOR_DIRECTORY_FIX: Color = Color::Yellow;
+const COLOR_DIRECTORY: Color = Color::LightYellow;
+const COLOR_FILE: Color = Color::Gray;
 
 fn main() -> Result<()> {
     let mut is_left = true;
 
-    let title_container = Span::styled(
-        format!(" {} v{} ", TITLE, VERSION),
-        Style::default().fg(Color::Green),
-    );
+    let title_container = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(Color::Green));
 
     enable_raw_mode()?;
     let mut stdout = stdout();
@@ -38,31 +38,46 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // ---------- FOLDER READ
-    let entries = fs::read_dir(".")?
-        .filter_map(|entry| entry.ok())
-        .collect::<Vec<_>>();
+    let mut entries = fs::read_dir("/home/colt")?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+    // Sort: directories first, then by name (case-insensitive)
+    entries.sort_by(|a, b| {
+        let a_is_dir = a.path().is_dir();
+        let b_is_dir = b.path().is_dir();
+
+        match (a_is_dir, b_is_dir) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => {
+                let a_name = a.file_name().to_string_lossy().to_lowercase();
+                let b_name = b.file_name().to_string_lossy().to_lowercase();
+                a_name.cmp(&b_name)
+            }
+        }
+    });
+
+    // ---------- GENERATE ROWS
     let mut rows: Vec<Row> = entries
         .iter()
         .map(|entry| {
             let path = entry.path();
-            let mut name = path
-                .file_stem()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_string();
-            if path.is_dir() {
-                name = format!("[{}]", name)
+            let is_dir = path.is_dir();
+            let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
+            let mut dir_prefix = "";
+            let mut dir_suffix = "";
+            if is_dir {
+                dir_prefix = "[";
+                dir_suffix = "]";
             }
-            let extension = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_string();
+            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
             let metadata = entry.metadata().ok();
-            let size = format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0));
+            let size = if is_dir { String::from("<DIR>") } else { format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0)) };
 
             Row::new(vec![
-                Cell::from(name),
+                Cell::from(Line::from(vec![
+                    Span::styled(dir_prefix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                    Span::styled(name, Style::default().fg(if path.is_dir() { COLOR_DIRECTORY } else { COLOR_FILE })),
+                    Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                ])),
                 Cell::from(extension),
                 Cell::from(size),
             ])
@@ -81,24 +96,12 @@ fn main() -> Result<()> {
         terminal.draw(|f| {
             let area = f.area();
 
-            let clock_container = Span::styled(
-                Local::now().format(" %H:%M:%S ").to_string(),
-                Style::default().fg(Color::Green),
-            );
+            let clock_container = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(Color::Green));
 
             // ---------- CHUNKS MAIN
             let chunks_main = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(
-                    [
-                        Constraint::Length(3),
-                        Constraint::Length(1),
-                        Constraint::Percentage(100),
-                        Constraint::Length(1),
-                        Constraint::Length(3),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([Constraint::Length(3), Constraint::Length(1), Constraint::Percentage(100), Constraint::Length(1), Constraint::Length(3)].as_ref())
                 .split(area);
 
             // ---------- BLOCK TOP
@@ -127,48 +130,23 @@ fn main() -> Result<()> {
                 }
             }
             separator_top.push_str(joint_right);
-            let border_top = Paragraph::new(Text::raw(separator_top))
-                .style(Style::default().fg(COLOR_BORDER))
-                .alignment(ratatui::layout::Alignment::Left);
+            let border_top = Paragraph::new(Text::raw(separator_top)).style(Style::default().fg(COLOR_BORDER)).alignment(ratatui::layout::Alignment::Left);
             f.render_widget(border_top, chunks_main[1]);
 
             // ---------- CHUNKS MIDDLE
             let chunks_middle = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints(
-                    [
-                        Constraint::Percentage(50),
-                        Constraint::Length(1),
-                        Constraint::Percentage(50),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)].as_ref())
                 .split(chunks_main[2]);
 
             // ---------- TABLE LEFT
-            let widths = [
-                Constraint::Percentage(60),
-                Constraint::Percentage(20),
-                Constraint::Percentage(20),
-            ];
+            let widths = [Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
             let table_left = Table::new(rows.clone(), widths)
-                .block(
-                    Block::default()
-                        .borders(Borders::LEFT)
-                        .border_style(Style::default().fg(COLOR_BORDER)),
-                )
-                .header(Row::new(vec![
-                    Cell::from("Name"),
-                    Cell::from("Ext"),
-                    Cell::from("Size"),
-                ]))
+                .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
+                .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
                 .row_highlight_style(
                     Style::default()
-                        .bg(if is_left {
-                            COLOR_SELECTED_BACKGROUND
-                        } else {
-                            COLOR_SELECTED_BACKGROUND_INACTIVE
-                        })
+                        .bg(if is_left { COLOR_SELECTED_BACKGROUND } else { COLOR_SELECTED_BACKGROUND_INACTIVE })
                         .fg(COLOR_SELECTED_FOREGROUND)
                         .add_modifier(Modifier::BOLD),
                 )
@@ -183,30 +161,16 @@ fn main() -> Result<()> {
                 separator_middle.push_str("\n");
             }
             separator_middle.push_str(vertical);
-            let border_top = Paragraph::new(Text::raw(separator_middle))
-                .style(Style::default().fg(COLOR_BORDER))
-                .alignment(ratatui::layout::Alignment::Left);
+            let border_top = Paragraph::new(Text::raw(separator_middle)).style(Style::default().fg(COLOR_BORDER)).alignment(ratatui::layout::Alignment::Left);
             f.render_widget(border_top, chunks_middle[1]);
 
             // ---------- TABLE RIGHT
             let table_right = Table::new(rows.clone(), widths)
-                .block(
-                    Block::default()
-                        .borders(Borders::RIGHT)
-                        .border_style(Style::default().fg(COLOR_BORDER)),
-                )
-                .header(Row::new(vec![
-                    Cell::from("Name"),
-                    Cell::from("Ext"),
-                    Cell::from("Size"),
-                ]))
+                .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
+                .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
                 .row_highlight_style(
                     Style::default()
-                        .bg(if !is_left {
-                            COLOR_SELECTED_BACKGROUND
-                        } else {
-                            COLOR_SELECTED_BACKGROUND_INACTIVE
-                        })
+                        .bg(if !is_left { COLOR_SELECTED_BACKGROUND } else { COLOR_SELECTED_BACKGROUND_INACTIVE })
                         .fg(COLOR_SELECTED_FOREGROUND)
                         .add_modifier(Modifier::BOLD),
                 )
@@ -224,15 +188,11 @@ fn main() -> Result<()> {
                 }
             }
             separator_bottom.push_str(joint_right);
-            let border_bottom = Paragraph::new(Text::raw(separator_bottom))
-                .style(Style::default().fg(COLOR_BORDER))
-                .alignment(ratatui::layout::Alignment::Left);
+            let border_bottom = Paragraph::new(Text::raw(separator_bottom)).style(Style::default().fg(COLOR_BORDER)).alignment(ratatui::layout::Alignment::Left);
             f.render_widget(border_bottom, chunks_main[3]);
 
             // ---------- BLOCK BOTTOM
-            let block_bottom = Block::default()
-                .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
-                .border_style(Style::default().fg(COLOR_BORDER));
+            let block_bottom = Block::default().borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER));
             f.render_widget(block_bottom, chunks_main[4]);
         })?;
 
@@ -274,7 +234,7 @@ fn main() -> Result<()> {
         }
     }
 
-    // Cleanup
+    // ---------- CLEANUP
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
