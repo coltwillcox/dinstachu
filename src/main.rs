@@ -1,4 +1,4 @@
-use chrono::{Local, Timelike};
+use chrono::Local;
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -7,10 +7,10 @@ use crossterm::{
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style},
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
 };
 use std::fs;
 use std::io::{Result, stdout};
@@ -19,8 +19,13 @@ use std::time::Duration;
 const TITLE: &str = "Dinstachu";
 const VERSION: &str = "0.0.1";
 const COLOR_BORDER: Color = Color::Magenta;
+const COLOR_SELECTED_BACKGROUND_INACTIVE: Color = Color::DarkGray;
+const COLOR_SELECTED_BACKGROUND: Color = Color::LightMagenta;
+const COLOR_SELECTED_FOREGROUND: Color = Color::Black;
 
 fn main() -> Result<()> {
+    let mut is_left = true;
+
     let title_container = Span::styled(
         format!(" {} v{} ", TITLE, VERSION),
         Style::default().fg(Color::Green),
@@ -32,25 +37,35 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Read the contents of the current directory
+    // ---------- FOLDER READ
     let entries = fs::read_dir(".")?
         .filter_map(|entry| entry.ok())
         .collect::<Vec<_>>();
     let mut rows: Vec<Row> = entries
         .iter()
         .map(|entry| {
-            let name = entry.file_name();
+            let path = entry.path();
+            let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("");
+            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
             let metadata = entry.metadata().ok();
             let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+
             Row::new(vec![
-                Cell::from(name.to_string_lossy().to_string()),
-                Cell::from(format!("{} bytes", size)),
+                Cell::from(name.to_string()),
+                Cell::from(extension.to_string()),
+                Cell::from(format_size(size)),
             ])
         })
         .collect();
-    rows.insert(0, Row::new(vec![Cell::from(""), Cell::from("")]));
+    rows.insert(0, Row::new(vec![Cell::from("..")]));
 
-    // Main loop
+    // ---------- STATES
+    let mut state_left = TableState::default();
+    state_left.select(Some(1));
+    let mut state_right = TableState::default();
+    state_right.select(Some(1));
+
+    // ---------- MAIN LOOP
     loop {
         terminal.draw(|f| {
             let area = f.area();
@@ -79,7 +94,6 @@ fn main() -> Result<()> {
             let block_top = Block::default()
                 .title_top(Line::from(title_container.clone()).centered())
                 .title_top(Line::from(clock_container).right_aligned())
-                // .title_alignment(Alignment::Right)
                 .borders(Borders::LEFT | Borders::TOP | Borders::RIGHT)
                 .border_style(Style::default().fg(COLOR_BORDER));
             f.render_widget(block_top, chunks_main[0]);
@@ -120,18 +134,37 @@ fn main() -> Result<()> {
                 )
                 .split(chunks_main[2]);
 
-            let widths = [Constraint::Percentage(100)];
+            // ---------- TABLE LEFT
+            let widths = [
+                Constraint::Percentage(60),
+                Constraint::Percentage(20),
+                Constraint::Percentage(20),
+            ];
             let table_left = Table::new(rows.clone(), widths)
                 .block(
                     Block::default()
                         .borders(Borders::LEFT)
                         .border_style(Style::default().fg(COLOR_BORDER)),
                 )
-                .widths(&[Constraint::Percentage(70), Constraint::Percentage(30)])
-                .header(Row::new(vec![Cell::from("Name"), Cell::from("Metadata")]))
+                .header(Row::new(vec![
+                    Cell::from("Name"),
+                    Cell::from("Ext"),
+                    Cell::from("Size"),
+                ]))
+                .row_highlight_style(
+                    Style::default()
+                        .bg(if is_left {
+                            COLOR_SELECTED_BACKGROUND
+                        } else {
+                            COLOR_SELECTED_BACKGROUND_INACTIVE
+                        })
+                        .fg(COLOR_SELECTED_FOREGROUND)
+                        .add_modifier(Modifier::BOLD),
+                )
                 .column_spacing(1);
-            f.render_widget(table_left, chunks_middle[0]);
+            f.render_stateful_widget(table_left, chunks_middle[0], &mut state_left);
 
+            // ---------- SEPARATOR MIDDLE
             let mut separator_middle = String::new();
             separator_middle.push_str(vertical);
             for _ in 1..(chunks_middle[0].height as usize) {
@@ -144,16 +177,30 @@ fn main() -> Result<()> {
                 .alignment(ratatui::layout::Alignment::Left);
             f.render_widget(border_top, chunks_middle[1]);
 
+            // ---------- TABLE RIGHT
             let table_right = Table::new(rows.clone(), widths)
                 .block(
                     Block::default()
                         .borders(Borders::RIGHT)
                         .border_style(Style::default().fg(COLOR_BORDER)),
                 )
-                .widths(&[Constraint::Percentage(70), Constraint::Percentage(30)])
-                .header(Row::new(vec![Cell::from("Name"), Cell::from("Metadata")]))
+                .header(Row::new(vec![
+                    Cell::from("Name"),
+                    Cell::from("Ext"),
+                    Cell::from("Size"),
+                ]))
+                .row_highlight_style(
+                    Style::default()
+                        .bg(if !is_left {
+                            COLOR_SELECTED_BACKGROUND
+                        } else {
+                            COLOR_SELECTED_BACKGROUND_INACTIVE
+                        })
+                        .fg(COLOR_SELECTED_FOREGROUND)
+                        .add_modifier(Modifier::BOLD),
+                )
                 .column_spacing(1);
-            f.render_widget(table_right, chunks_middle[2]);
+            f.render_stateful_widget(table_right, chunks_middle[2], &mut state_right);
 
             // ---------- SEPARATOR BOTTOM
             let mut separator_bottom = String::new();
@@ -178,11 +225,39 @@ fn main() -> Result<()> {
             f.render_widget(block_bottom, chunks_main[4]);
         })?;
 
-        // Wait up to 500ms for an event
+        // ---------- KEY COMMANDS
         if event::poll(Duration::from_millis(500))? {
             if let Event::Key(key) = event::read()? {
-                if key.code == KeyCode::F(10) || key.code == KeyCode::Char('q') {
-                    break;
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::F(10) => break,
+                    KeyCode::Down => {
+                        if is_left {
+                            if let Some(i) = state_left.selected() {
+                                let next = if i >= rows.len() - 1 { 0 } else { i + 1 };
+                                state_left.select(Some(next));
+                            }
+                        } else {
+                            if let Some(i) = state_right.selected() {
+                                let next = if i >= rows.len() - 1 { 0 } else { i + 1 };
+                                state_right.select(Some(next));
+                            }
+                        }
+                    }
+                    KeyCode::Up => {
+                        if is_left {
+                            if let Some(i) = state_left.selected() {
+                                let prev = if i == 0 { rows.len() - 1 } else { i - 1 };
+                                state_left.select(Some(prev));
+                            }
+                        } else {
+                            if let Some(i) = state_right.selected() {
+                                let prev = if i == 0 { rows.len() - 1 } else { i - 1 };
+                                state_right.select(Some(prev));
+                            }
+                        }
+                    }
+                    KeyCode::Tab => is_left = !is_left,
+                    _ => {}
                 }
             }
         }
@@ -192,4 +267,18 @@ fn main() -> Result<()> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
+}
+
+/// Converts bytes to human-readable format with binary prefixes (KiB, MiB, etc.)
+fn format_size(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+    let mut size = bytes as f64;
+    let mut unit_index = 0;
+
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
+    }
+
+    format!("{:.0} {}", size, UNITS[unit_index])
 }
