@@ -7,16 +7,19 @@ use ratatui::{
 };
 use std::fs;
 use std::io::Result;
+use std::path::PathBuf;
 
-pub fn load_directory_rows(path: &str) -> Result<Vec<Row>> {
+pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<Vec<Row<'a>>> {
     let mut entries = fs::read_dir(path)?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
 
-    entries.sort_by(|a, b| {
-        match (a.path().is_dir(), b.path().is_dir()) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.file_name().to_string_lossy().to_lowercase().cmp(&b.file_name().to_string_lossy().to_lowercase()),
-        }
+    entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a
+            .file_name()
+            .to_string_lossy()
+            .to_lowercase()
+            .cmp(&b.file_name().to_string_lossy().to_lowercase()),
     });
 
     let mut rows: Vec<Row> = entries
@@ -27,7 +30,11 @@ pub fn load_directory_rows(path: &str) -> Result<Vec<Row>> {
             let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
             let (dir_prefix, dir_suffix) = if is_dir { ("[", "]") } else { ("", "") };
             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
-            let size = if is_dir { "<DIR>".to_string() } else { format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0)) };
+            let size = if is_dir {
+                "<DIR>".to_string()
+            } else {
+                format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0))
+            };
 
             Row::new(vec![
                 Cell::from(Line::from(vec![

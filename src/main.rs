@@ -12,6 +12,7 @@ use fs_ops::load_directory_rows;
 use input::handle_input;
 use ratatui::{Terminal, backend::CrosstermBackend, widgets::TableState};
 use std::io::{Result, stdout};
+use std::path::PathBuf;
 use ui::render_ui;
 
 fn main() -> Result<()> {
@@ -21,19 +22,33 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let rows_left= load_directory_rows("/home/colt")?;
-	let rows_right= load_directory_rows("/home/colt/.config")?;
+    let mut left_dir = PathBuf::from("/home/colt");
+    let mut right_dir = PathBuf::from("/home/colt/.config");
 
-	let mut state_left = TableState::default();
-	let mut state_right = TableState::default();
+    let left_dir_clone = left_dir.clone();
+    let right_dir_clone = right_dir.clone();
+
+    let mut rows_left = load_directory_rows(&left_dir_clone)?;
+    let mut rows_right = load_directory_rows(&right_dir_clone)?;
+
+    let mut state_left = TableState::default();
+    let mut state_right = TableState::default();
 
     state_left.select(Some(1));
     state_right.select(Some(1));
-	let mut is_left = true;
+    let mut is_left = true;
 
     loop {
         render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
-        if !handle_input(&mut state_left, &mut state_right, &mut is_left, rows_left.len(), rows_right.len())? {
+        if !handle_input(
+            &mut left_dir,
+            &mut right_dir,
+            &mut state_left,
+            &mut state_right,
+            &mut is_left,
+            &mut rows_left,
+            &mut rows_right,
+        )? {
             break;
         }
     }
