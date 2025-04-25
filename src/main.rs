@@ -1,3 +1,7 @@
+// TODO Separate dirs entries
+// TODO Enter dir
+// TODO Back dir
+// TODO Read colors from config
 use chrono::Local;
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -38,9 +42,25 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // ---------- FOLDER READ
-    let mut entries = fs::read_dir("/home/colt")?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
-    // Sort: directories first, then by name (case-insensitive)
-    entries.sort_by(|a, b| {
+    let mut entries_left = fs::read_dir("/home/colt")?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+    entries_left.sort_by(|a, b| {
+        // Sort: directories first, then by name (case-insensitive)
+        let a_is_dir = a.path().is_dir();
+        let b_is_dir = b.path().is_dir();
+
+        match (a_is_dir, b_is_dir) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => {
+                let a_name = a.file_name().to_string_lossy().to_lowercase();
+                let b_name = b.file_name().to_string_lossy().to_lowercase();
+                a_name.cmp(&b_name)
+            }
+        }
+    });
+    let mut entries_right = fs::read_dir("/home/colt/.config")?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+    entries_right.sort_by(|a, b| {
+        // Sort: directories first, then by name (case-insensitive)
         let a_is_dir = a.path().is_dir();
         let b_is_dir = b.path().is_dir();
 
@@ -56,7 +76,7 @@ fn main() -> Result<()> {
     });
 
     // ---------- GENERATE ROWS
-    let mut rows: Vec<Row> = entries
+    let mut rows_left: Vec<Row> = entries_left
         .iter()
         .map(|entry| {
             let path = entry.path();
@@ -83,7 +103,36 @@ fn main() -> Result<()> {
             ])
         })
         .collect();
-    rows.insert(0, Row::new(vec![Cell::from("..")]));
+    rows_left.insert(0, Row::new(vec![Cell::from("..")]));
+
+    let mut rows_right: Vec<Row> = entries_right
+        .iter()
+        .map(|entry| {
+            let path = entry.path();
+            let is_dir = path.is_dir();
+            let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
+            let mut dir_prefix = "";
+            let mut dir_suffix = "";
+            if is_dir {
+                dir_prefix = "[";
+                dir_suffix = "]";
+            }
+            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
+            let metadata = entry.metadata().ok();
+            let size = if is_dir { String::from("<DIR>") } else { format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0)) };
+
+            Row::new(vec![
+                Cell::from(Line::from(vec![
+                    Span::styled(dir_prefix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                    Span::styled(name, Style::default().fg(if path.is_dir() { COLOR_DIRECTORY } else { COLOR_FILE })),
+                    Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                ])),
+                Cell::from(extension),
+                Cell::from(size),
+            ])
+        })
+        .collect();
+    rows_right.insert(0, Row::new(vec![Cell::from("..")]));
 
     // ---------- STATES
     let mut state_left = TableState::default();
@@ -141,7 +190,7 @@ fn main() -> Result<()> {
 
             // ---------- TABLE LEFT
             let widths = [Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
-            let table_left = Table::new(rows.clone(), widths)
+            let table_left = Table::new(rows_left.clone(), widths)
                 .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
                 .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
                 .row_highlight_style(
@@ -165,7 +214,7 @@ fn main() -> Result<()> {
             f.render_widget(border_top, chunks_middle[1]);
 
             // ---------- TABLE RIGHT
-            let table_right = Table::new(rows.clone(), widths)
+            let table_right = Table::new(rows_right.clone(), widths)
                 .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
                 .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
                 .row_highlight_style(
@@ -204,12 +253,12 @@ fn main() -> Result<()> {
                     KeyCode::Down => {
                         if is_left {
                             if let Some(i) = state_left.selected() {
-                                let next = if i >= rows.len() - 1 { 0 } else { i + 1 };
+                                let next = if i >= rows_left.len() - 1 { 0 } else { i + 1 };
                                 state_left.select(Some(next));
                             }
                         } else {
                             if let Some(i) = state_right.selected() {
-                                let next = if i >= rows.len() - 1 { 0 } else { i + 1 };
+                                let next = if i >= rows_right.len() - 1 { 0 } else { i + 1 };
                                 state_right.select(Some(next));
                             }
                         }
@@ -217,12 +266,12 @@ fn main() -> Result<()> {
                     KeyCode::Up => {
                         if is_left {
                             if let Some(i) = state_left.selected() {
-                                let prev = if i == 0 { rows.len() - 1 } else { i - 1 };
+                                let prev = if i == 0 { rows_left.len() - 1 } else { i - 1 };
                                 state_left.select(Some(prev));
                             }
                         } else {
                             if let Some(i) = state_right.selected() {
-                                let prev = if i == 0 { rows.len() - 1 } else { i - 1 };
+                                let prev = if i == 0 { rows_right.len() - 1 } else { i - 1 };
                                 state_right.select(Some(prev));
                             }
                         }
