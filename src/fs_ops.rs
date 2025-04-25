@@ -12,7 +12,6 @@ pub fn load_directory_rows(path: &str) -> Result<Vec<Row>> {
     let mut entries = fs::read_dir(path)?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
 
     entries.sort_by(|a, b| {
-        // let a_dir = a.path().is_dir();
         match (a.path().is_dir(), b.path().is_dir()) {
             (true, false) => std::cmp::Ordering::Less,
             (false, true) => std::cmp::Ordering::Greater,

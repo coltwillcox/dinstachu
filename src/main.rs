@@ -4,7 +4,6 @@ mod input;
 mod ui;
 mod utils;
 
-// use constants::*;
 use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
