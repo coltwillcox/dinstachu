@@ -21,8 +21,12 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let (rows_left, rows_right) = (load_directory_rows("/home/colt")?, load_directory_rows("/home/colt/.config")?);
-    let (mut state_left, mut state_right) = (TableState::default(), TableState::default());
+    let rows_left= load_directory_rows("/home/colt")?;
+	let rows_right= load_directory_rows("/home/colt/.config")?;
+
+	let mut state_left = TableState::default();
+	let mut state_right = TableState::default();
+
     state_left.select(Some(1));
     state_right.select(Some(1));
 	let mut is_left = true;
