@@ -40,11 +40,8 @@ fn main() -> Result<()> {
         }
     }
 
-    let left_dir_clone = left_dir.clone();
-    let right_dir_clone = right_dir.clone();
-
-    let (mut rows_left, mut children_left) = load_directory_rows(&left_dir_clone)?;
-    let (mut rows_right, mut children_right) = load_directory_rows(&right_dir_clone)?;
+    let (mut rows_left, mut children_left) = load_directory_rows(&left_dir.clone())?;
+    let (mut rows_right, mut children_right) = load_directory_rows(&right_dir.clone())?;
 
     let mut state_left = TableState::default();
     let mut state_right = TableState::default();
