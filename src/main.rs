@@ -2,6 +2,8 @@
 // TODO Add icons column
 // TODO Add Home/End events
 // TODO Add PgUp/PgDown events
+// TODO Check if dir is deleted
+// TODO Check PermissionDenied (eg. /root)
 mod constants;
 mod fs_ops;
 mod input;
@@ -44,17 +46,7 @@ fn main() -> Result<()> {
 
     loop {
         render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
-        if !handle_input(
-            &mut left_dir,
-            &mut right_dir,
-            &mut state_left,
-            &mut state_right,
-            &mut is_left,
-            &mut rows_left,
-            &mut rows_right,
-            &mut children_left,
-            &mut children_right,
-        )? {
+        if !handle_input(&mut left_dir, &mut right_dir, &mut state_left, &mut state_right, &mut is_left, &mut rows_left, &mut rows_right, &mut children_left, &mut children_right)? {
             break;
         }
     }

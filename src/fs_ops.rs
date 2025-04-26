@@ -9,6 +9,7 @@ use std::fs;
 use std::io::Result;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone)]
 pub struct Item {
     pub name: String,
     pub extension: String,
@@ -22,11 +23,7 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
     entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
         (true, false) => std::cmp::Ordering::Less,
         (false, true) => std::cmp::Ordering::Greater,
-        _ => a
-            .file_name()
-            .to_string_lossy()
-            .to_lowercase()
-            .cmp(&b.file_name().to_string_lossy().to_lowercase()),
+        _ => a.file_name().to_string_lossy().to_lowercase().cmp(&b.file_name().to_string_lossy().to_lowercase()),
     });
 
     let mut children = Vec::<Item>::new();
@@ -50,11 +47,7 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
         let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
         let (dir_prefix, dir_suffix) = if is_dir { ("[", "]") } else { ("", "") };
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
-        let size = if is_dir {
-            "<DIR>".to_string()
-        } else {
-            format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0))
-        };
+        let size = if is_dir { "<DIR>".to_string() } else { format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0)) };
 
         children.push(Item {
             name: name.clone(),

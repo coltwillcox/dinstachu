@@ -21,82 +21,103 @@ pub fn handle_input(
             match key.code {
                 KeyCode::Char('q') | KeyCode::F(10) => return Ok(false),
                 KeyCode::Tab => *is_left = !*is_left,
-                KeyCode::Down => {
-                    let (state, len) = if *is_left {
-                        (state_left, rows_left.len())
-                    } else {
-                        (state_right, rows_right.len())
-                    };
+                KeyCode::Down => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     if let Some(i) = state.selected() {
                         state.select(Some(if i >= len - 1 { 0 } else { i + 1 }));
                     }
-                }
-                KeyCode::Up => {
-                    let (state, len) = if *is_left {
-                        (state_left, rows_left.len())
-                    } else {
-                        (state_right, rows_right.len())
-                    };
+                }),
+                KeyCode::Up => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     if let Some(i) = state.selected() {
                         state.select(Some(if i == 0 { len - 1 } else { i - 1 }));
                     }
-                }
-                KeyCode::Backspace => {
-                    if *is_left {
-                        if let Some(parent) = left_dir.parent() {
-                            *left_dir = parent.to_path_buf();
-                            (*rows_left, *children_left) = load_directory_rows(left_dir)?;
-                            state_left.select(Some(0));
-                        }
-                    } else {
-                        if let Some(parent) = right_dir.parent() {
-                            *right_dir = parent.to_path_buf();
-                            (*rows_right, *children_right) = load_directory_rows(right_dir)?;
-                            state_right.select(Some(0));
-                        }
-                    }
-                }
-                KeyCode::Enter => {
-                    if *is_left {
-                        // TODO Check if dir is deleted
-                        // TODO Check PermissionDenied (eg. /root)
-                        if let Some(i) = state_left.selected() {
-                            if let Some(item) = children_left.get(i) {
-                                if item.name == ".." {
-                                    if let Some(parent) = left_dir.parent() {
-                                        *left_dir = parent.to_path_buf();
-                                        (*rows_left, *children_left) = load_directory_rows(left_dir)?;
-                                        state_left.select(Some(0));
-                                    }
-                                } else if item.is_dir {
-                                    left_dir.push(item.name.clone());
-                                    (*rows_left, *children_left) = load_directory_rows(left_dir)?;
-                                    state_left.select(Some(0));
-                                }
-                            }
-                        }
-                    } else {
-                        if let Some(i) = state_right.selected() {
-                            if let Some(item) = children_right.get(i) {
-                                if item.name == ".." {
-                                    if let Some(parent) = right_dir.parent() {
-                                        *right_dir = parent.to_path_buf();
-                                        (*rows_right, *children_right) = load_directory_rows(right_dir)?;
-                                        state_right.select(Some(0));
-                                    }
-                                } else if item.is_dir {
-                                    right_dir.push(item.name.clone());
-                                    (*rows_right, *children_right) = load_directory_rows(right_dir)?;
-                                    state_right.select(Some(0));
-                                }
-                            }
-                        }
-                    }
-                }
+                }),
+                KeyCode::Backspace => handle_navigate_up(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
+                KeyCode::Enter => handle_enter_directory(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
                 _ => {}
             }
         }
     }
-
     Ok(true)
+}
+
+fn handle_move_selection(is_left: &mut bool, state_left: &mut TableState, len_left: usize, state_right: &mut TableState, len_right: usize, move_fn: impl Fn(&mut TableState, usize)) {
+    let (state, len) = if *is_left { (state_left, len_left) } else { (state_right, len_right) };
+    move_fn(state, len);
+}
+
+fn handle_navigate_up(
+    is_left: &mut bool,
+    left_dir: &mut PathBuf,
+    rows_left: &mut Vec<Row>,
+    children_left: &mut Vec<Item>,
+    state_left: &mut TableState,
+    right_dir: &mut PathBuf,
+    rows_right: &mut Vec<Row>,
+    children_right: &mut Vec<Item>,
+    state_right: &mut TableState,
+) -> Result<()> {
+    if *is_left {
+        if let Some(parent) = left_dir.parent() {
+            *left_dir = parent.to_path_buf();
+            let (new_rows, new_children) = load_directory_rows(left_dir)?;
+            *rows_left = new_rows;
+            *children_left = new_children;
+            state_left.select(Some(0));
+        }
+    } else {
+        if let Some(parent) = right_dir.parent() {
+            *right_dir = parent.to_path_buf();
+            let (new_rows, new_children) = load_directory_rows(right_dir)?;
+            *rows_right = new_rows;
+            *children_right = new_children;
+            state_right.select(Some(0));
+        }
+    }
+    Ok(())
+}
+
+fn handle_enter_directory(
+    is_left: &mut bool,
+    left_dir: &mut PathBuf,
+    rows_left: &mut Vec<Row>,
+    children_left: &mut Vec<Item>,
+    state_left: &mut TableState,
+    right_dir: &mut PathBuf,
+    rows_right: &mut Vec<Row>,
+    children_right: &mut Vec<Item>,
+    state_right: &mut TableState,
+) -> Result<()> {
+    if *is_left {
+        if let Some(selected_index) = state_left.selected() {
+            if let Some(item) = children_left.get(selected_index).cloned() {
+                navigate_or_load(left_dir, rows_left, children_left, state_left, &item)?;
+            }
+        }
+    } else {
+        if let Some(selected_index) = state_right.selected() {
+            if let Some(item) = children_right.get(selected_index).cloned() {
+                navigate_or_load(right_dir, rows_right, children_right, state_right, &item)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState, item: &Item) -> Result<()> {
+    if item.name == ".." {
+        if let Some(parent) = current_dir.parent() {
+            *current_dir = parent.to_path_buf();
+            let (new_rows, new_children) = load_directory_rows(current_dir)?;
+            *rows = new_rows;
+            *children = new_children;
+            state.select(Some(0));
+        }
+    } else if item.is_dir {
+        current_dir.push(item.name.clone());
+        let (new_rows, new_children) = load_directory_rows(current_dir)?;
+        *rows = new_rows;
+        *children = new_children;
+        state.select(Some(0));
+    }
+    Ok(())
 }
