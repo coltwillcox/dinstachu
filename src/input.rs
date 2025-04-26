@@ -31,6 +31,12 @@ pub fn handle_input(
                         state.select(Some(if i == 0 { len - 1 } else { i - 1 }));
                     }
                 }),
+				KeyCode::Home => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+					state.select_first();
+                }),
+				KeyCode::End => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+					state.select_last();
+                }),
                 KeyCode::Backspace => handle_navigate_up(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
                 KeyCode::Enter => handle_enter_directory(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
                 _ => {}

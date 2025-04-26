@@ -1,6 +1,5 @@
 // TODO When going back, select parent folder, not 0 index
 // TODO Add icons column
-// TODO Add Home/End events
 // TODO Add PgUp/PgDown events
 // TODO Check if dir is deleted
 // TODO Check PermissionDenied (eg. /root)
