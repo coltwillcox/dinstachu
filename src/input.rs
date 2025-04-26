@@ -44,7 +44,7 @@ pub fn handle_input(
                         state.select(Some(next));
                     }
                 }),
-                KeyCode::Home => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                KeyCode::Home => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, _len| {
                     state.select(Some(0));
                 }),
                 KeyCode::End => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
