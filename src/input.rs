@@ -1,4 +1,4 @@
-use crate::fs_ops::load_directory_rows;
+use crate::fs_ops::{Item, load_directory_rows};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::{Row, TableState};
 use std::io::Result;
@@ -13,8 +13,8 @@ pub fn handle_input(
     is_left: &mut bool,
     rows_left: &mut Vec<Row>,
     rows_right: &mut Vec<Row>,
-    children_left: &mut Vec<String>,
-    children_right: &mut Vec<String>,
+    children_left: &mut Vec<Item>,
+    children_right: &mut Vec<Item>,
 ) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
@@ -46,30 +46,51 @@ pub fn handle_input(
                         if let Some(parent) = left_dir.parent() {
                             *left_dir = parent.to_path_buf();
                             (*rows_left, *children_left) = load_directory_rows(left_dir)?;
-                            state_left.select(Some(1));
+                            state_left.select(Some(0));
                         }
                     } else {
                         if let Some(parent) = right_dir.parent() {
                             *right_dir = parent.to_path_buf();
                             (*rows_right, *children_right) = load_directory_rows(right_dir)?;
-                            state_right.select(Some(1));
+                            state_right.select(Some(0));
                         }
                     }
                 }
                 KeyCode::Enter => {
                     if *is_left {
-                        // TODO Check if item is dir
-                        // TODO Press on ..
-                        let red = state_left.selected();
-                        if let Some(i) = red {
-                            if let Some(item) = children_left.get(i - 1) {
-                                left_dir.push(item);
+                        // TODO Check if dir is deleted
+                        // TODO Check PermissionDenied (eg. /root)
+                        if let Some(i) = state_left.selected() {
+                            if let Some(item) = children_left.get(i) {
+                                if item.name == ".." {
+                                    if let Some(parent) = left_dir.parent() {
+                                        *left_dir = parent.to_path_buf();
+                                        (*rows_left, *children_left) = load_directory_rows(left_dir)?;
+                                        state_left.select(Some(0));
+                                    }
+                                } else if item.is_dir {
+                                    left_dir.push(item.name.clone());
+                                    (*rows_left, *children_left) = load_directory_rows(left_dir)?;
+                                    state_left.select(Some(0));
+                                }
                             }
                         }
-                        (*rows_left, *children_left) = load_directory_rows(left_dir)?;
-                        state_left.select(Some(1));
                     } else {
-                        // TODO
+                        if let Some(i) = state_right.selected() {
+                            if let Some(item) = children_right.get(i) {
+                                if item.name == ".." {
+                                    if let Some(parent) = right_dir.parent() {
+                                        *right_dir = parent.to_path_buf();
+                                        (*rows_right, *children_right) = load_directory_rows(right_dir)?;
+                                        state_right.select(Some(0));
+                                    }
+                                } else if item.is_dir {
+                                    right_dir.push(item.name.clone());
+                                    (*rows_right, *children_right) = load_directory_rows(right_dir)?;
+                                    state_right.select(Some(0));
+                                }
+                            }
+                        }
                     }
                 }
                 _ => {}
