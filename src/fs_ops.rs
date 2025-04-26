@@ -37,7 +37,7 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
             is_dir: true,
             size: "".to_string(),
         });
-        rows.insert(0, Row::new(vec![Cell::from("..")]));
+        rows.insert(0, Row::new(vec![Cell::from(Span::styled("..", Style::default().fg(COLOR_FILE)))]));
     }
 
     for entry in &entries {
@@ -64,8 +64,8 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
                 Span::styled(name, Style::default().fg(if is_dir { COLOR_DIRECTORY } else { COLOR_FILE })),
                 Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
             ])),
-            Cell::from(extension),
-            Cell::from(size),
+            Cell::from(Span::styled(extension, Style::default().fg(if is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled(size, Style::default().fg(if is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
         ]));
     }
 

@@ -12,9 +12,9 @@ use std::io::Result;
 
 pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<u16> {
     let mut page_size: u16 = 0;
-	
-    let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(Color::Green));
-    let clock = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(Color::Green));
+
+    let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(COLOR_TITLE));
+    let clock = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(COLOR_TITLE));
 
     terminal.draw(|f| {
         let area = f.area();
@@ -41,7 +41,11 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
         let widths = [Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
         let table_left = Table::new(rows_left.to_vec(), widths)
             .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
-            .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
+            .header(Row::new(vec![
+                Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
+            ]))
             .row_highlight_style(
                 Style::default()
                     .bg(if is_left { COLOR_SELECTED_BACKGROUND } else { COLOR_SELECTED_BACKGROUND_INACTIVE })
@@ -56,7 +60,11 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
 
         let table_right = Table::new(rows_right.to_vec(), widths)
             .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
-            .header(Row::new(vec![Cell::from("Name"), Cell::from("Ext"), Cell::from("Size")]))
+            .header(Row::new(vec![
+                Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
+            ]))
             .row_highlight_style(
                 Style::default()
                     .bg(if !is_left { COLOR_SELECTED_BACKGROUND } else { COLOR_SELECTED_BACKGROUND_INACTIVE })
