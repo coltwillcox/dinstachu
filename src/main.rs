@@ -1,7 +1,7 @@
-// TODO Add icons column
 // TODO When going back, select parent folder, not 0 index
-// Add Home/End events
-// Add PgUp/PgDown events
+// TODO Add icons column
+// TODO Add Home/End events
+// TODO Add PgUp/PgDown events
 mod constants;
 mod fs_ops;
 mod input;
