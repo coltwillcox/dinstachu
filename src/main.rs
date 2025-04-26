@@ -15,6 +15,7 @@ use crossterm::{
 use fs_ops::load_directory_rows;
 use input::handle_input;
 use ratatui::{Terminal, backend::CrosstermBackend, widgets::TableState};
+use std::env;
 use std::io::{Result, stdout};
 use std::path::PathBuf;
 use ui::render_ui;
@@ -26,8 +27,18 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut left_dir = PathBuf::from("/home/colt");
-    let mut right_dir = PathBuf::from("/home/colt/.config");
+    let mut left_dir = PathBuf::from("/");
+    let mut right_dir = PathBuf::from("/");
+
+    match env::current_dir() {
+        Ok(path) => {
+            left_dir = path.clone();
+            right_dir = path.clone();
+        }
+        Err(e) => {
+            eprintln!("Failed to get current directory: {}", e);
+        }
+    }
 
     let left_dir_clone = left_dir.clone();
     let right_dir_clone = right_dir.clone();
