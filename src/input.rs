@@ -13,6 +13,8 @@ pub fn handle_input(
     is_left: &mut bool,
     rows_left: &mut Vec<Row>,
     rows_right: &mut Vec<Row>,
+    children_left: &mut Vec<String>,
+    children_right: &mut Vec<String>,
 ) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
@@ -43,24 +45,32 @@ pub fn handle_input(
                     if *is_left {
                         if let Some(parent) = left_dir.parent() {
                             *left_dir = parent.to_path_buf();
-                            *rows_left = load_directory_rows(left_dir)?;
+                            (*rows_left, *children_left) = load_directory_rows(left_dir)?;
                             state_left.select(Some(1));
                         }
                     } else {
                         if let Some(parent) = right_dir.parent() {
                             *right_dir = parent.to_path_buf();
-                            *rows_right = load_directory_rows(right_dir)?;
+                            (*rows_right, *children_right) = load_directory_rows(right_dir)?;
                             state_right.select(Some(1));
                         }
                     }
                 }
                 KeyCode::Enter => {
-                    // TODO
-                    // if let Some(parent) = left_dir.parent() {
-                    // 	*left_dir = parent.to_path_buf();
-                    // 	*rows_left = load_directory_rows(left_dir)?;
-                    // 	state_left.select(Some(1));
-                    // }
+                    if *is_left {
+                        // TODO Check if item is dir
+                        // TODO Press on ..
+                        let red = state_left.selected();
+                        if let Some(i) = red {
+                            if let Some(item) = children_left.get(i - 1) {
+                                left_dir.push(item);
+                            }
+                        }
+                        (*rows_left, *children_left) = load_directory_rows(left_dir)?;
+                        state_left.select(Some(1));
+                    } else {
+                        // TODO
+                    }
                 }
                 _ => {}
             }

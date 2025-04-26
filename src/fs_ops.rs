@@ -9,7 +9,7 @@ use std::fs;
 use std::io::Result;
 use std::path::PathBuf;
 
-pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<Vec<Row<'a>>> {
+pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<String>)> {
     let mut entries = fs::read_dir(path)?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
 
     entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
@@ -22,9 +22,12 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<Vec<Row<'a>>> {
             .cmp(&b.file_name().to_string_lossy().to_lowercase()),
     });
 
+    let mut children = Vec::<String>::new();
+
     let mut rows: Vec<Row> = entries
         .iter()
         .map(|entry| {
+            // TODO Check dirs with ext
             let path = entry.path();
             let is_dir = path.is_dir();
             let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
@@ -35,6 +38,8 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<Vec<Row<'a>>> {
             } else {
                 format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0))
             };
+
+            children.push(name.clone());
 
             Row::new(vec![
                 Cell::from(Line::from(vec![
@@ -49,5 +54,5 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<Vec<Row<'a>>> {
         .collect();
 
     rows.insert(0, Row::new(vec![Cell::from("..")]));
-    Ok(rows)
+    Ok((rows, children))
 }
