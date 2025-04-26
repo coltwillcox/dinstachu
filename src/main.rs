@@ -1,6 +1,5 @@
 // TODO When going back, select parent folder, not 0 index
 // TODO Add icons column
-// TODO Add PgUp/PgDown events
 // TODO Check if dir is deleted
 // TODO Check PermissionDenied (eg. /root)
 mod constants;
@@ -41,11 +40,24 @@ fn main() -> Result<()> {
 
     state_left.select(Some(1));
     state_right.select(Some(1));
+
     let mut is_left = true;
+    let mut page_size: u16;
 
     loop {
-        render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
-        if !handle_input(&mut left_dir, &mut right_dir, &mut state_left, &mut state_right, &mut is_left, &mut rows_left, &mut rows_right, &mut children_left, &mut children_right)? {
+        page_size = render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
+        if !handle_input(
+            &mut left_dir,
+            &mut right_dir,
+            &mut state_left,
+            &mut state_right,
+            &mut is_left,
+            &mut rows_left,
+            &mut rows_right,
+            &mut children_left,
+            &mut children_right,
+            page_size,
+        )? {
             break;
         }
     }

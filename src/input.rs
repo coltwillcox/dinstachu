@@ -15,6 +15,7 @@ pub fn handle_input(
     rows_right: &mut Vec<Row>,
     children_left: &mut Vec<Item>,
     children_right: &mut Vec<Item>,
+    page_size: u16,
 ) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
@@ -31,11 +32,23 @@ pub fn handle_input(
                         state.select(Some(if i == 0 { len - 1 } else { i - 1 }));
                     }
                 }),
-				KeyCode::Home => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
-					state.select_first();
+                KeyCode::PageDown => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                    if let Some(selected) = state.selected() {
+                        let next = (selected + page_size as usize).clamp(0, len);
+                        state.select(Some(next));
+                    }
                 }),
-				KeyCode::End => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
-					state.select_last();
+                KeyCode::PageUp => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                    if let Some(selected) = state.selected() {
+                        let next = selected.saturating_sub(page_size as usize).clamp(0, len.saturating_sub(1));
+                        state.select(Some(next));
+                    }
+                }),
+                KeyCode::Home => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                    state.select(Some(0));
+                }),
+                KeyCode::End => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                    state.select(Some(len - 1));
                 }),
                 KeyCode::Backspace => handle_navigate_up(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
                 KeyCode::Enter => handle_enter_directory(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,

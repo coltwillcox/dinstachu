@@ -41,12 +41,15 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
     }
 
     for entry in &entries {
-        // TODO Check Enter key on dirs with ext
         let path = entry.path();
         let is_dir = path.is_dir();
-        let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string();
+        let name = if is_dir {
+            path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+        } else {
+            path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string()
+        };
         let (dir_prefix, dir_suffix) = if is_dir { ("[", "]") } else { ("", "") };
-        let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
+        let extension = if is_dir { "".to_string() } else { path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string() };
         let size = if is_dir { "<DIR>".to_string() } else { format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0)) };
 
         children.push(Item {

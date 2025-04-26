@@ -10,7 +10,9 @@ use ratatui::{
 };
 use std::io::Result;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<()> {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<u16> {
+    let mut page_size: u16 = 0;
+	
     let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(Color::Green));
     let clock = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(Color::Green));
 
@@ -69,7 +71,9 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
 
         let block_bottom = Block::default().borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER));
         f.render_widget(block_bottom, chunks_main[4]);
+
+        page_size = chunks_middle[0].height
     })?;
 
-    Ok(())
+    Ok(page_size)
 }
