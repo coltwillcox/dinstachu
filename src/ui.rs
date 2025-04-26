@@ -4,13 +4,14 @@ use ratatui::{
     Terminal,
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
 };
 use std::io::Result;
+use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<u16> {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<u16> {
     let mut page_size: u16 = 0;
 
     let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(COLOR_TITLE));
@@ -30,8 +31,26 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
             .border_style(Style::default().fg(COLOR_BORDER));
         f.render_widget(block_top, chunks_main[0]);
 
-        let separator_top = format!("├{}┬{}┤", "─".repeat((area.width as usize - 3) / 2), "─".repeat((area.width as usize - 2) / 2));
-        f.render_widget(Paragraph::new(Text::raw(separator_top)).style(Style::default().fg(COLOR_BORDER)).alignment(Alignment::Left), chunks_main[1]);
+        let length_left = ((area.width as usize).saturating_sub(3)) / 2;
+        let length_right = ((area.width as usize).saturating_sub(2)) / 2;
+        let path_left = limit_path_string(&dir_left, length_left.saturating_sub(5));
+        let path_right = limit_path_string(&dir_right, length_right.saturating_sub(5));
+        let border_1 = format!("{}", "├─");
+        let border_2 = format!("{}", path_left);
+        let border_3 = format!("{}{}", "─".repeat(length_left.saturating_sub(path_left.len().saturating_add(2))), "─┬─");
+        let border_4 = format!("{}", path_right);
+        let border_5 = format!("{}{}", "─".repeat(length_right.saturating_sub(path_right.len().saturating_add(2))), "─┤".to_string());
+
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(border_1, Style::default().fg(COLOR_BORDER)),
+                Span::styled(border_2, Style::default().fg(COLOR_DIRECTORY)),
+                Span::styled(border_3, Style::default().fg(COLOR_BORDER)),
+                Span::styled(border_4, Style::default().fg(COLOR_DIRECTORY)),
+                Span::styled(border_5, Style::default().fg(COLOR_BORDER)),
+            ])),
+            chunks_main[1],
+        );
 
         let chunks_middle = Layout::default()
             .direction(Direction::Horizontal)
@@ -74,7 +93,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
             .column_spacing(1);
         f.render_stateful_widget(table_right, chunks_middle[2], &mut state_right.clone());
 
-        let separator_bottom = format!("├{}┴{}┤", "─".repeat((area.width as usize - 3) / 2), "─".repeat((area.width as usize - 2) / 2));
+        let separator_bottom = format!("├{}┴{}┤", "─".repeat(((area.width as usize).saturating_sub(3)) / 2), "─".repeat(((area.width as usize).saturating_sub(2)) / 2));
         f.render_widget(Paragraph::new(Text::raw(separator_bottom)).style(Style::default().fg(COLOR_BORDER)).alignment(Alignment::Left), chunks_main[3]);
 
         let block_bottom = Block::default().borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER));
@@ -84,4 +103,9 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
     })?;
 
     Ok(page_size)
+}
+
+fn limit_path_string(path_buf: &PathBuf, n: usize) -> String {
+    let path_string = path_buf.display().to_string();
+    if path_string.len() <= n { path_string } else { format!("{}...", &path_string[..n]) }
 }

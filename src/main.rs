@@ -27,21 +27,21 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut left_dir = PathBuf::from("/");
-    let mut right_dir = PathBuf::from("/");
+    let mut dir_left = PathBuf::from("/");
+    let mut dir_right = PathBuf::from("/");
 
     match env::current_dir() {
         Ok(path) => {
-            left_dir = path.clone();
-            right_dir = path.clone();
+            dir_left = path.clone();
+            dir_right = path.clone();
         }
         Err(e) => {
             eprintln!("Failed to get current directory: {}", e);
         }
     }
 
-    let (mut rows_left, mut children_left) = load_directory_rows(&left_dir.clone())?;
-    let (mut rows_right, mut children_right) = load_directory_rows(&right_dir.clone())?;
+    let (mut rows_left, mut children_left) = load_directory_rows(&dir_left.clone())?;
+    let (mut rows_right, mut children_right) = load_directory_rows(&dir_right.clone())?;
 
     let mut state_left = TableState::default();
     let mut state_right = TableState::default();
@@ -53,10 +53,10 @@ fn main() -> Result<()> {
     let mut page_size: u16;
 
     loop {
-        page_size = render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
+        page_size = render_ui(&mut terminal, &mut dir_left, &mut dir_right, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
         if !handle_input(
-            &mut left_dir,
-            &mut right_dir,
+            &mut dir_left,
+            &mut dir_right,
             &mut state_left,
             &mut state_right,
             &mut is_left,

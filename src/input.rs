@@ -6,8 +6,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub fn handle_input(
-    left_dir: &mut PathBuf,
-    right_dir: &mut PathBuf,
+    dir_left: &mut PathBuf,
+    dir_right: &mut PathBuf,
     state_left: &mut TableState,
     state_right: &mut TableState,
     is_left: &mut bool,
@@ -50,8 +50,8 @@ pub fn handle_input(
                 KeyCode::End => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     state.select(Some(len - 1));
                 }),
-                KeyCode::Backspace => handle_navigate_up(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
-                KeyCode::Enter => handle_enter_directory(is_left, left_dir, rows_left, children_left, state_left, right_dir, rows_right, children_right, state_right)?,
+                KeyCode::Backspace => handle_navigate_up(is_left, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right)?,
+                KeyCode::Enter => handle_enter_directory(is_left, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right)?,
                 _ => {}
             }
         }
@@ -66,27 +66,27 @@ fn handle_move_selection(is_left: &mut bool, state_left: &mut TableState, len_le
 
 fn handle_navigate_up(
     is_left: &mut bool,
-    left_dir: &mut PathBuf,
+    dir_left: &mut PathBuf,
     rows_left: &mut Vec<Row>,
     children_left: &mut Vec<Item>,
     state_left: &mut TableState,
-    right_dir: &mut PathBuf,
+    dir_right: &mut PathBuf,
     rows_right: &mut Vec<Row>,
     children_right: &mut Vec<Item>,
     state_right: &mut TableState,
 ) -> Result<()> {
     if *is_left {
-        if let Some(parent) = left_dir.parent() {
-            *left_dir = parent.to_path_buf();
-            let (new_rows, new_children) = load_directory_rows(left_dir)?;
+        if let Some(parent) = dir_left.parent() {
+            *dir_left = parent.to_path_buf();
+            let (new_rows, new_children) = load_directory_rows(dir_left)?;
             *rows_left = new_rows;
             *children_left = new_children;
             state_left.select(Some(0));
         }
     } else {
-        if let Some(parent) = right_dir.parent() {
-            *right_dir = parent.to_path_buf();
-            let (new_rows, new_children) = load_directory_rows(right_dir)?;
+        if let Some(parent) = dir_right.parent() {
+            *dir_right = parent.to_path_buf();
+            let (new_rows, new_children) = load_directory_rows(dir_right)?;
             *rows_right = new_rows;
             *children_right = new_children;
             state_right.select(Some(0));
@@ -97,11 +97,11 @@ fn handle_navigate_up(
 
 fn handle_enter_directory(
     is_left: &mut bool,
-    left_dir: &mut PathBuf,
+    dir_left: &mut PathBuf,
     rows_left: &mut Vec<Row>,
     children_left: &mut Vec<Item>,
     state_left: &mut TableState,
-    right_dir: &mut PathBuf,
+    dir_right: &mut PathBuf,
     rows_right: &mut Vec<Row>,
     children_right: &mut Vec<Item>,
     state_right: &mut TableState,
@@ -109,13 +109,13 @@ fn handle_enter_directory(
     if *is_left {
         if let Some(selected_index) = state_left.selected() {
             if let Some(item) = children_left.get(selected_index).cloned() {
-                navigate_or_load(left_dir, rows_left, children_left, state_left, &item)?;
+                navigate_or_load(dir_left, rows_left, children_left, state_left, &item)?;
             }
         }
     } else {
         if let Some(selected_index) = state_right.selected() {
             if let Some(item) = children_right.get(selected_index).cloned() {
-                navigate_or_load(right_dir, rows_right, children_right, state_right, &item)?;
+                navigate_or_load(dir_right, rows_right, children_right, state_right, &item)?;
             }
         }
     }
