@@ -25,6 +25,7 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+	// TODO Get root path
     let mut dir_left = PathBuf::from("/");
     let mut dir_right = PathBuf::from("/");
 

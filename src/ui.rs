@@ -59,14 +59,16 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
             .constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)])
             .split(chunks_main[2]);
 
-        let widths = [Constraint::Length(2), Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
+        let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
 
         let table_left = Table::new(rows_left.to_vec(), widths)
             .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
             .header(Row::new(vec![
                 Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
             ]))
             .row_highlight_style(
@@ -86,7 +88,9 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
             .header(Row::new(vec![
                 Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
             ]))
             .row_highlight_style(
