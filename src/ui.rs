@@ -14,6 +14,7 @@ use std::path::PathBuf;
 pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_f1_displayed: bool, is_left: bool) -> Result<u16> {
     let mut page_size: u16 = 0;
 
+    let logo = Span::styled(format!(" {} ", ICON_LOGO), Style::default().fg(COLOR_TITLE));
     let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(COLOR_TITLE));
     let clock = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(COLOR_TITLE));
 
@@ -25,6 +26,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
             .split(area);
 
         let block_top = Block::default()
+            .title_top(Line::from(logo).left_aligned())
             .title_top(Line::from(title).centered())
             .title_top(Line::from(clock).right_aligned())
             .borders(Borders::LEFT | Borders::TOP | Borders::RIGHT)
@@ -57,10 +59,12 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
             .constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)])
             .split(chunks_main[2]);
 
-        let widths = [Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
+        let widths = [Constraint::Length(2), Constraint::Percentage(60), Constraint::Percentage(20), Constraint::Percentage(20)];
+
         let table_left = Table::new(rows_left.to_vec(), widths)
             .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
             .header(Row::new(vec![
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
@@ -80,6 +84,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
         let table_right = Table::new(rows_right.to_vec(), widths)
             .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
             .header(Row::new(vec![
+                Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Name", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
                 Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),

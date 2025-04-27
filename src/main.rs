@@ -1,4 +1,3 @@
-// TODO Add icons column
 // TODO Check if dir is deleted
 // TODO Check PermissionDenied (eg. /root)
 mod constants;

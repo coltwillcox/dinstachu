@@ -3,6 +3,10 @@ use ratatui::style::Color;
 pub const TITLE: &str = "Dinstachu";
 pub const VERSION: &str = "0.0.1";
 
+pub const ICON_FOLDER: &str = " "; // Added space after icon is workaround for small icons bug in table columns
+pub const ICON_FILE: &str = " ";
+pub const ICON_LOGO: &str = "󱐌";
+
 pub const COLOR_BORDER: Color = Color::Red;
 pub const COLOR_COLUMNS: Color = Color::Rgb(248, 160, 85);
 pub const COLOR_DIRECTORY: Color = Color::Rgb(255, 230, 45);
