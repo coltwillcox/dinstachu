@@ -21,8 +21,9 @@ pub fn handle_input(
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
+				KeyCode::Esc => *is_f1_displayed = false,
                 KeyCode::F(1) => *is_f1_displayed = !*is_f1_displayed,
-                KeyCode::F(10) | KeyCode::Char('q') => return Ok(false),
+                KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                 KeyCode::Tab => *is_left = !*is_left,
                 KeyCode::Down => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
