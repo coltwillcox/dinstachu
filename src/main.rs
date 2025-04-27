@@ -49,20 +49,22 @@ fn main() -> Result<()> {
     state_right.select(Some(1));
 
     let mut is_left = true;
+    let mut is_f1_displayed = false;
     let mut page_size: u16;
 
     loop {
-        page_size = render_ui(&mut terminal, &mut dir_left, &mut dir_right, &rows_left, &rows_right, &state_left, &state_right, is_left)?;
+        page_size = render_ui(&mut terminal, &mut dir_left, &mut dir_right, &rows_left, &rows_right, &state_left, &state_right, is_f1_displayed, is_left)?;
         if !handle_input(
             &mut dir_left,
             &mut dir_right,
             &mut state_left,
             &mut state_right,
-            &mut is_left,
             &mut rows_left,
             &mut rows_right,
             &mut children_left,
             &mut children_right,
+            &mut is_left,
+            &mut is_f1_displayed,
             page_size,
         )? {
             break;

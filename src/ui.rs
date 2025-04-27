@@ -11,7 +11,7 @@ use ratatui::{
 use std::io::Result;
 use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> Result<u16> {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_f1_displayed: bool, is_left: bool) -> Result<u16> {
     let mut page_size: u16 = 0;
 
     let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(COLOR_TITLE));
@@ -96,27 +96,35 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
         let separator_bottom = format!("├{}┴{}┤", "─".repeat(((area.width as usize).saturating_sub(3)) / 2), "─".repeat(((area.width as usize).saturating_sub(2)) / 2));
         f.render_widget(Paragraph::new(Text::raw(separator_bottom)).style(Style::default().fg(COLOR_BORDER)).alignment(Alignment::Left), chunks_main[3]);
 
-        let block_bottom = Block::default().borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER));
+        let block_bottom = Block::default()
+            .title_bottom(Line::from(Span::styled(" F1 Help ", Style::default().fg(COLOR_TITLE))).centered())
+            .title_bottom(Line::from(Span::styled(" F2 ", Style::default().fg(COLOR_TITLE))).centered())
+            .title_bottom(Line::from(Span::styled(" F3 ", Style::default().fg(COLOR_TITLE))).centered())
+            .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
+            .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
+            .title_bottom(Line::from(Span::styled(" F10 Quit ", Style::default().fg(COLOR_TITLE))).centered())
+            .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
+            .border_style(Style::default().fg(COLOR_BORDER));
         f.render_widget(block_bottom, chunks_main[4]);
 
-        page_size = chunks_middle[0].height;
-
-        // TODO Popup POC
-        let show_popup = false;
-        if show_popup {
+        // Show F1 popup
+        if is_f1_displayed {
             let popup_block = Block::default()
-                .title(Line::from(Span::styled(format!(" {} ", "Popup title"), Style::default().fg(COLOR_TITLE))).centered())
+                .title(Line::from(Span::styled(format!(" {} ", "Help/About"), Style::default().fg(COLOR_TITLE))).centered())
                 .borders(Borders::ALL)
                 .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
-            let area = centered_rect(60, 20, f.area()); // Calculate centered rect
-            // `Clear` is important to draw over the existing content
-            f.render_widget(Clear::default(), area);
-            f.render_widget(popup_block, area);
+            let area_popup = centered_rect(60, 20, f.area());
+
+            f.render_widget(Clear::default(), area_popup); // `Clear` is important to draw over the existing content
+            f.render_widget(popup_block, area_popup);
             f.render_widget(
-                Paragraph::new("This is a popup!").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-                area.inner(Margin { vertical: 2, horizontal: 2 }), // Add some padding
+                Paragraph::new("F1 - This help").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+                area_popup.inner(Margin { vertical: 2, horizontal: 2 }),
             );
+            f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), area_popup.inner(Margin { vertical: 3, horizontal: 2 }));
         }
+
+        page_size = chunks_middle[0].height;
     })?;
 
     Ok(page_size)

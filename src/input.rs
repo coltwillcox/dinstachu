@@ -10,17 +10,19 @@ pub fn handle_input(
     dir_right: &mut PathBuf,
     state_left: &mut TableState,
     state_right: &mut TableState,
-    is_left: &mut bool,
     rows_left: &mut Vec<Row>,
     rows_right: &mut Vec<Row>,
     children_left: &mut Vec<Item>,
     children_right: &mut Vec<Item>,
+    is_left: &mut bool,
+    is_f1_displayed: &mut bool,
     page_size: u16,
 ) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
-                KeyCode::Char('q') | KeyCode::F(10) => return Ok(false),
+                KeyCode::F(1) => *is_f1_displayed = !*is_f1_displayed,
+                KeyCode::F(10) | KeyCode::Char('q') => return Ok(false),
                 KeyCode::Tab => *is_left = !*is_left,
                 KeyCode::Down => handle_move_selection(is_left, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
