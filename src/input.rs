@@ -77,19 +77,33 @@ fn handle_navigate_up(
 ) -> Result<()> {
     if *is_left {
         if let Some(parent) = dir_left.parent() {
+            let name_current = dir_left.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             *dir_left = parent.to_path_buf();
-            let (new_rows, new_children) = load_directory_rows(dir_left)?;
-            *rows_left = new_rows;
-            *children_left = new_children;
-            state_left.select(Some(0));
+            let (rows_new, children_new) = load_directory_rows(dir_left)?;
+            *rows_left = rows_new;
+            *children_left = children_new;
+            let mut selected_new: usize = 0;
+            for (index, item) in children_left.iter_mut().enumerate() {
+                if (item.name == name_current) {
+                    selected_new = index;
+                }
+            }
+            state_left.select(Some(selected_new));
         }
     } else {
         if let Some(parent) = dir_right.parent() {
+            let name_current = dir_right.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             *dir_right = parent.to_path_buf();
-            let (new_rows, new_children) = load_directory_rows(dir_right)?;
-            *rows_right = new_rows;
-            *children_right = new_children;
-            state_right.select(Some(0));
+            let (rows_new, children_new) = load_directory_rows(dir_right)?;
+            *rows_right = rows_new;
+            *children_right = children_new;
+            let mut selected_new: usize = 0;
+            for (index, item) in children_right.iter_mut().enumerate() {
+                if (item.name == name_current) {
+                    selected_new = index;
+                }
+            }
+            state_right.select(Some(selected_new));
         }
     }
     Ok(())
@@ -125,11 +139,18 @@ fn handle_enter_directory(
 fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState, item: &Item) -> Result<()> {
     if item.name == ".." {
         if let Some(parent) = current_dir.parent() {
+            let name_current = current_dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             *current_dir = parent.to_path_buf();
             let (new_rows, new_children) = load_directory_rows(current_dir)?;
             *rows = new_rows;
             *children = new_children;
-            state.select(Some(0));
+            let mut selected_new: usize = 0;
+            for (index, item) in children.iter_mut().enumerate() {
+                if (item.name == name_current) {
+                    selected_new = index;
+                }
+            }
+            state.select(Some(selected_new));
         }
     } else if item.is_dir {
         current_dir.push(item.name.clone());

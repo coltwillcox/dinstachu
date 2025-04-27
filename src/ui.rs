@@ -3,10 +3,10 @@ use chrono::Local;
 use ratatui::{
     Terminal,
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout},
-    style::{Modifier, Style},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
+    style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
 };
 use std::io::Result;
 use std::path::PathBuf;
@@ -99,7 +99,24 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
         let block_bottom = Block::default().borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER));
         f.render_widget(block_bottom, chunks_main[4]);
 
-        page_size = chunks_middle[0].height
+        page_size = chunks_middle[0].height;
+
+        // TODO Popup POC
+        let show_popup = false;
+        if show_popup {
+            let popup_block = Block::default()
+                .title(Line::from(Span::styled(format!(" {} ", "Popup title"), Style::default().fg(COLOR_TITLE))).centered())
+                .borders(Borders::ALL)
+                .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
+            let area = centered_rect(60, 20, f.area()); // Calculate centered rect
+            // `Clear` is important to draw over the existing content
+            f.render_widget(Clear::default(), area);
+            f.render_widget(popup_block, area);
+            f.render_widget(
+                Paragraph::new("This is a popup!").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+                area.inner(Margin { vertical: 2, horizontal: 2 }), // Add some padding
+            );
+        }
     })?;
 
     Ok(page_size)
@@ -108,4 +125,16 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
 fn limit_path_string(path_buf: &PathBuf, n: usize) -> String {
     let path_string = path_buf.display().to_string();
     if path_string.len() <= n { path_string } else { format!("{}...", &path_string[..n]) }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage((100 - percent_y) / 2), Constraint::Percentage(percent_y), Constraint::Percentage((100 - percent_y) / 2)])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage((100 - percent_x) / 2), Constraint::Percentage(percent_x), Constraint::Percentage((100 - percent_x) / 2)])
+        .split(popup_layout[1])[1]
 }
