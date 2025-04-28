@@ -1,5 +1,3 @@
-// TODO Check if dir is deleted
-// TODO Check PermissionDenied (eg. /root)
 mod constants;
 mod fs_ops;
 mod input;
@@ -39,6 +37,7 @@ fn main() -> Result<()> {
         }
     }
 
+	// TODO Check for error
     let (mut rows_left, mut children_left) = load_directory_rows(&dir_left.clone())?;
     let (mut rows_right, mut children_right) = load_directory_rows(&dir_right.clone())?;
 

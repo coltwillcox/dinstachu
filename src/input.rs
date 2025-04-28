@@ -21,7 +21,7 @@ pub fn handle_input(
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
-				KeyCode::Esc => *is_f1_displayed = false,
+                KeyCode::Esc => *is_f1_displayed = false,
                 KeyCode::F(1) => *is_f1_displayed = !*is_f1_displayed,
                 KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                 KeyCode::Tab => *is_left = !*is_left,
@@ -108,12 +108,20 @@ fn handle_panel_operation<T>(
 fn navigate_up_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) -> Result<()> {
     if let Some(parent) = dir.parent() {
         let name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        *dir = parent.to_path_buf();
-        let (rows_new, children_new) = load_directory_rows(dir)?;
-        *rows = rows_new;
-        *children = children_new;
-        let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
-        state.select(Some(selected_new));
+        let dir_new = parent.to_path_buf();
+        let result = load_directory_rows(&dir_new);
+        match result {
+            Ok((rows_new, children_new)) => {
+                *dir = dir_new;
+                *rows = rows_new;
+                *children = children_new;
+                let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
+                state.select(Some(selected_new));
+            }
+            Err(e) => {
+                // TODO Display error
+            }
+        }
     }
     Ok(())
 }
@@ -122,24 +130,41 @@ fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &m
     if item.name == ".." {
         if let Some(parent) = current_dir.parent() {
             let name_current = current_dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-            *current_dir = parent.to_path_buf();
-            let (new_rows, new_children) = load_directory_rows(current_dir)?;
-            *rows = new_rows;
-            *children = new_children;
-            let mut selected_new: usize = 0;
-            for (index, item) in children.iter_mut().enumerate() {
-                if item.name == name_current {
-                    selected_new = index;
+            let dir_new = parent.to_path_buf();
+            let result = load_directory_rows(&dir_new);
+            match result {
+                Ok((rows_new, children_new)) => {
+                    *current_dir = dir_new;
+                    *rows = rows_new;
+                    *children = children_new;
+                    let mut selected_new: usize = 0;
+                    for (index, item) in children.iter_mut().enumerate() {
+                        if item.name == name_current {
+                            selected_new = index;
+                        }
+                    }
+                    state.select(Some(selected_new));
+                }
+                Err(e) => {
+                    // TODO Display error
                 }
             }
-            state.select(Some(selected_new));
         }
     } else if item.is_dir {
-        current_dir.push(item.name.clone());
-        let (new_rows, new_children) = load_directory_rows(current_dir)?;
-        *rows = new_rows;
-        *children = new_children;
-        state.select(Some(0));
+        let mut dir_new = current_dir.clone();
+        dir_new.push(item.name.clone());
+        let result = load_directory_rows(&dir_new);
+        match result {
+            Ok((rows_new, children_new)) => {
+                *current_dir = dir_new;
+                *rows = rows_new;
+                *children = children_new;
+                state.select(Some(0));
+            }
+            Err(e) => {
+                // TODO Display error
+            }
+        }
     }
     Ok(())
 }

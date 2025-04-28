@@ -5,8 +5,8 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Cell, Row},
 };
-use std::fs;
-use std::io::Result;
+use std::fs::{DirEntry, read_dir};
+use std::io::Error;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -17,8 +17,18 @@ pub struct Item {
     pub size: String,
 }
 
-pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item>)> {
-    let mut entries = fs::read_dir(path)?.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item>), Error> {
+    let mut entries: Vec<DirEntry>;
+    let entries_result = read_dir(path);
+
+    match entries_result {
+        Ok(dir) => {
+            entries = dir.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
 
     entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
         (true, false) => std::cmp::Ordering::Less,
