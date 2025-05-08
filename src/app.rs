@@ -2,6 +2,7 @@ use ratatui::widgets::{Row, TableState};
 use std::path::PathBuf;
 
 pub struct AppState<'a> {
+    pub is_error_displayed: bool,
     pub is_f1_displayed: bool,
     pub is_left_active: bool,
     pub dir_left: PathBuf,
@@ -13,6 +14,7 @@ pub struct AppState<'a> {
     pub rows_right: Vec<Row<'a>>,
     pub children_left: Vec<Item>,
     pub children_right: Vec<Item>,
+    pub error_message: String,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +34,7 @@ impl AppState<'_> {
         state_right.select(Some(1));
 
         Self {
+            is_error_displayed: false,
             is_f1_displayed: false,
             is_left_active: true,
             dir_left: PathBuf::from("/"),
@@ -43,6 +46,7 @@ impl AppState<'_> {
             rows_right: Vec::<Row>::new(),
             children_left: Vec::<Item>::new(),
             children_right: Vec::<Item>::new(),
+            error_message: String::new(),
         }
     }
 }

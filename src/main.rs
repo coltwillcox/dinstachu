@@ -36,9 +36,26 @@ fn main() -> Result<()> {
         }
     }
 
-    // TODO Check for error
-    (app_state.rows_left, app_state.children_left) = load_directory_rows(&app_state.dir_left)?;
-    (app_state.rows_right, app_state.children_right) = load_directory_rows(&app_state.dir_right)?;
+    match load_directory_rows(&app_state.dir_left) {
+        Ok((rows, items)) => {
+            app_state.rows_left = rows;
+            app_state.children_left = items;
+        }
+        Err(e) => {
+            app_state.is_error_displayed = true;
+            app_state.error_message = e.to_string();
+        }
+    }
+    match load_directory_rows(&app_state.dir_right) {
+        Ok((rows, items)) => {
+            app_state.rows_right = rows;
+            app_state.children_right = items;
+        }
+        Err(e) => {
+            app_state.is_error_displayed = true;
+            app_state.error_message = e.to_string();
+        }
+    }
 
     loop {
         render_ui(&mut terminal, &mut app_state);

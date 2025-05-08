@@ -26,7 +26,9 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
         render_bottom_panel(f, chunks_main[3], area.width);
         render_fkey_bar(f, chunks_main[4]);
 
-        if app_state.is_f1_displayed {
+        if app_state.is_error_displayed {
+            render_error_popup(f, area, app_state);
+        } else if app_state.is_f1_displayed {
             render_help_popup(f, area);
         }
     });
@@ -126,6 +128,22 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
     f.render_widget(block_bottom, area);
 }
 
+fn render_error_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut AppState) {
+    let popup_area = centered_rect(60, 20, area);
+    let popup_block = Block::default()
+        .title(Line::from(Span::styled(" Error ", Style::default().fg(COLOR_TITLE))).centered())
+        .borders(Borders::ALL)
+        .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
+
+    f.render_widget(Clear::default(), popup_area); // `Clear` is important to draw over the existing content.
+    f.render_widget(popup_block, popup_area);
+
+    f.render_widget(
+        Paragraph::new(app_state.error_message.clone()).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
+    );
+}
+
 fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
     let popup_area = centered_rect(60, 20, area);
     let popup_block = Block::default()
@@ -133,7 +151,7 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         .borders(Borders::ALL)
         .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
 
-    f.render_widget(Clear::default(), popup_area); // `Clear` is important to draw over the existing content.
+    f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
 
     f.render_widget(

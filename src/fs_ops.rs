@@ -32,7 +32,7 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
     let mut children = Vec::<Item>::new();
     let mut rows = Vec::<Row>::new();
 
-    // Don't add ".." on root folder
+    // Don't add ".." on root folder.
     if path.parent().is_some() {
         children.push(Item {
             name: "..".to_string(),
