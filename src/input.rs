@@ -6,7 +6,7 @@ use std::io::Result;
 use std::path::PathBuf;
 use std::time::Duration;
 
-pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, children_left: &mut Vec<Item>, children_right: &mut Vec<Item>, app_state: &mut AppState, page_size: u16) -> Result<bool> {
+pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, children_left: &mut Vec<Item>, children_right: &mut Vec<Item>, app_state: &mut AppState) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
@@ -21,10 +21,10 @@ pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, r
                     state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
                 }),
                 KeyCode::PageDown => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
-                    state.select(state.selected().map(|selected| (selected + page_size as usize).min(len.saturating_sub(1))));
+                    state.select(state.selected().map(|selected| (selected + app_state.page_size as usize).min(len.saturating_sub(1))));
                 }),
                 KeyCode::PageUp => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, _len| {
-                    state.select(state.selected().map(|selected| selected.saturating_sub(page_size as usize)));
+                    state.select(state.selected().map(|selected| selected.saturating_sub(app_state.page_size as usize)));
                 }),
                 KeyCode::Home => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, _len| {
                     state.select(Some(0));

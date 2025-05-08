@@ -10,12 +10,9 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
 };
-use std::io::Result;
 use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) -> Result<u16> {
-    let mut page_size = 0;
-
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) {
     terminal.draw(|f| {
         let area = f.area();
         let chunks_main = Layout::default()
@@ -25,16 +22,14 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
 
         render_top_panel(f, chunks_main[0]);
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
-        page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, app_state.is_left_active);
+        app_state.page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, app_state.is_left_active);
         render_bottom_panel(f, chunks_main[3], area.width);
         render_fkey_bar(f, chunks_main[4]);
 
         if app_state.is_f1_displayed {
             render_help_popup(f, area);
         }
-    })?;
-
-    Ok(page_size)
+    });
 }
 
 fn render_top_panel(f: &mut ratatui::Frame<'_>, area: Rect) {

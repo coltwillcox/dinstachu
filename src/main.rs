@@ -46,11 +46,9 @@ fn main() -> Result<()> {
     state_left.select(Some(1));
     state_right.select(Some(1));
 
-    let mut page_size: u16;
-
     loop {
-        page_size = render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, &mut app_state)?;
-        if !handle_input(&mut state_left, &mut state_right, &mut rows_left, &mut rows_right, &mut children_left, &mut children_right, &mut app_state, page_size)? {
+        render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, &mut app_state);
+        if !handle_input(&mut state_left, &mut state_right, &mut rows_left, &mut rows_right, &mut children_left, &mut children_right, &mut app_state)? {
             break;
         }
     }
