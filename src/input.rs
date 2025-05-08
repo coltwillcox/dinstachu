@@ -38,28 +38,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 KeyCode::End => handle_move_selection(app_state, |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
-                KeyCode::Backspace => handle_navigate_up(
-                    app_state.is_left_active,
-                    &mut app_state.dir_left,
-                    &mut app_state.rows_left,
-                    &mut app_state.children_left,
-                    &mut app_state.state_left,
-                    &mut app_state.dir_right,
-                    &mut app_state.rows_right,
-                    &mut app_state.children_right,
-                    &mut app_state.state_right,
-                )?,
-                KeyCode::Enter => handle_enter_directory(
-                    app_state.is_left_active,
-                    &mut app_state.dir_left,
-                    &mut app_state.rows_left,
-                    &mut app_state.children_left,
-                    &mut app_state.state_left,
-                    &mut app_state.dir_right,
-                    &mut app_state.rows_right,
-                    &mut app_state.children_right,
-                    &mut app_state.state_right,
-                )?,
+                KeyCode::Backspace => handle_navigate_up(app_state)?,
+                KeyCode::Enter => handle_enter_directory(app_state)?,
                 _ => {}
             }
         }
@@ -77,32 +57,34 @@ fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableSt
     move_fn(state, len);
 }
 
-fn handle_navigate_up(
-    is_left_active: bool,
-    dir_left: &mut PathBuf,
-    rows_left: &mut Vec<Row>,
-    children_left: &mut Vec<Item>,
-    state_left: &mut TableState,
-    dir_right: &mut PathBuf,
-    rows_right: &mut Vec<Row>,
-    children_right: &mut Vec<Item>,
-    state_right: &mut TableState,
-) -> Result<()> {
-    handle_panel_operation(is_left_active, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right, navigate_up_panel)
+fn handle_navigate_up(app_state: &mut AppState) -> Result<()> {
+    handle_panel_operation(
+        app_state.is_left_active,
+        &mut app_state.dir_left,
+        &mut app_state.rows_left,
+        &mut app_state.children_left,
+        &mut app_state.state_left,
+        &mut app_state.dir_right,
+        &mut app_state.rows_right,
+        &mut app_state.children_right,
+        &mut app_state.state_right,
+        navigate_up_panel,
+    )
 }
 
-fn handle_enter_directory(
-    is_left_active: bool,
-    dir_left: &mut PathBuf,
-    rows_left: &mut Vec<Row>,
-    children_left: &mut Vec<Item>,
-    state_left: &mut TableState,
-    dir_right: &mut PathBuf,
-    rows_right: &mut Vec<Row>,
-    children_right: &mut Vec<Item>,
-    state_right: &mut TableState,
-) -> Result<()> {
-    handle_panel_operation(is_left_active, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right, enter_directory_panel)
+fn handle_enter_directory(app_state: &mut AppState) -> Result<()> {
+    handle_panel_operation(
+        app_state.is_left_active,
+        &mut app_state.dir_left,
+        &mut app_state.rows_left,
+        &mut app_state.children_left,
+        &mut app_state.state_left,
+        &mut app_state.dir_right,
+        &mut app_state.rows_right,
+        &mut app_state.children_right,
+        &mut app_state.state_right,
+        enter_directory_panel,
+    )
 }
 
 fn handle_panel_operation<T>(
