@@ -1,4 +1,4 @@
-use crate::fs_ops::get_root_path;
+use crate::fs_ops::get_current_dir;
 use ratatui::widgets::{Row, TableState};
 use std::path::PathBuf;
 
@@ -34,13 +34,19 @@ impl AppState<'_> {
         state_right.select(Some(1));
         let mut dir_root = PathBuf::new();
 
-        match get_root_path() {
+        let mut is_error_displayed = false;
+        let mut error_message = String::new();
+
+        match get_current_dir() {
             Ok(root) => dir_root = root,
-            Err(e) => eprintln!("Error getting root path: {}", e),
+            Err(e) => {
+                is_error_displayed = true;
+                error_message = e.to_string();
+            }
         }
 
         Self {
-            is_error_displayed: false,
+            is_error_displayed,
             is_f1_displayed: false,
             is_left_active: true,
             dir_left: dir_root.clone(),
@@ -52,7 +58,13 @@ impl AppState<'_> {
             rows_right: Vec::<Row>::new(),
             children_left: Vec::<Item>::new(),
             children_right: Vec::<Item>::new(),
-            error_message: String::new(),
+            error_message,
         }
     }
 }
+
+// impl AppState<'_> {
+// 	pub fn is_popup_displayed() -> bool {
+// 		return self.is_error_displayed;
+// 	}
+// }

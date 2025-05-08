@@ -13,7 +13,6 @@ use crossterm::{
 use fs_ops::load_directory_rows;
 use input::handle_input;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::env;
 use std::io::{Result, stdout};
 use ui::render_ui;
 
@@ -25,16 +24,6 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app_state: AppState = AppState::new();
-
-    match env::current_dir() {
-        Ok(path) => {
-            app_state.dir_left = path.clone();
-            app_state.dir_right = path.clone();
-        }
-        Err(e) => {
-            eprintln!("Failed to get current directory: {}", e);
-        }
-    }
 
     match load_directory_rows(&app_state.dir_left) {
         Ok((rows, items)) => {

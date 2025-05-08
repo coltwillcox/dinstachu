@@ -80,7 +80,7 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
     Ok((rows, children))
 }
 
-pub fn get_root_path() -> Result<PathBuf, std::io::Error> {
+pub fn get_root_dir() -> Result<PathBuf, std::io::Error> {
     env::current_dir().map(|path_current| {
         let mut path = path_current;
         while let Some(parent) = path.parent() {
@@ -97,4 +97,11 @@ pub fn get_root_path() -> Result<PathBuf, std::io::Error> {
         }
         path // Fallback to the current directory if no clear root is found.
     })
+}
+
+pub fn get_current_dir() -> Result<PathBuf, std::io::Error> {
+    match env::current_dir() {
+        Ok(path) => Ok(path),
+        Err(e) => Err(e),
+    }
 }
