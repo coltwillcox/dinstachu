@@ -47,7 +47,6 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     Ok(true)
 }
 
-// fn handle_move_selection(is_left_active: bool, state_left: &mut TableState, len_left: usize, state_right: &mut TableState, len_right: usize, move_fn: impl Fn(&mut TableState, usize)) {
 fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableState, usize)) {
     let (state, len) = if app_state.is_left_active {
         (&mut app_state.state_left, app_state.rows_left.len())
@@ -58,51 +57,18 @@ fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableSt
 }
 
 fn handle_navigate_up(app_state: &mut AppState) -> Result<()> {
-    handle_panel_operation(
-        app_state.is_left_active,
-        &mut app_state.dir_left,
-        &mut app_state.rows_left,
-        &mut app_state.children_left,
-        &mut app_state.state_left,
-        &mut app_state.dir_right,
-        &mut app_state.rows_right,
-        &mut app_state.children_right,
-        &mut app_state.state_right,
-        navigate_up_panel,
-    )
+    handle_panel_operation(app_state, navigate_up_panel)
 }
 
 fn handle_enter_directory(app_state: &mut AppState) -> Result<()> {
-    handle_panel_operation(
-        app_state.is_left_active,
-        &mut app_state.dir_left,
-        &mut app_state.rows_left,
-        &mut app_state.children_left,
-        &mut app_state.state_left,
-        &mut app_state.dir_right,
-        &mut app_state.rows_right,
-        &mut app_state.children_right,
-        &mut app_state.state_right,
-        enter_directory_panel,
-    )
+    handle_panel_operation(app_state, enter_directory_panel)
 }
 
-fn handle_panel_operation<T>(
-    is_left: bool,
-    dir_left: &mut PathBuf,
-    rows_left: &mut Vec<Row>,
-    children_left: &mut Vec<T>,
-    state_left: &mut TableState,
-    dir_right: &mut PathBuf,
-    rows_right: &mut Vec<Row>,
-    children_right: &mut Vec<T>,
-    state_right: &mut TableState,
-    operation: impl FnOnce(&mut PathBuf, &mut Vec<Row>, &mut Vec<T>, &mut TableState) -> Result<()>,
-) -> Result<()> {
-    if is_left {
-        operation(dir_left, rows_left, children_left, state_left)?;
+fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut PathBuf, &mut Vec<Row>, &mut Vec<Item>, &mut TableState) -> Result<()>) -> Result<()> {
+    if app_state.is_left_active {
+        operation(&mut app_state.dir_left, &mut app_state.rows_left, &mut app_state.children_left, &mut app_state.state_left)?;
     } else {
-        operation(dir_right, rows_right, children_right, state_right)?;
+        operation(&mut app_state.dir_right, &mut app_state.rows_right, &mut app_state.children_right, &mut app_state.state_right)?;
     }
     Ok(())
 }
