@@ -70,19 +70,13 @@ fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut 
     operation(app_state);
 }
 
-// fn navigate_up_panel(is_error_displayed: &mut bool, dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) {
 fn navigate_up_panel(app_state: &mut AppState) {
     let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
     let rows = if app_state.is_left_active { &mut app_state.rows_left } else { &mut app_state.rows_right };
     let children = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
     let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
-    // if app_state.is_left_active {
-    //     operation(&mut app_state.is_error_displayed, &mut app_state.dir_left, &mut app_state.rows_left, &mut app_state.children_left, &mut app_state.state_left);
-    // } else {
-    //     operation(&mut app_state.is_error_displayed, &mut app_state.dir_right, &mut app_state.rows_right, &mut app_state.children_right, &mut app_state.state_right);
-    // }
 
-    if let Some(parent) = dir.parent() {
+	if let Some(parent) = dir.parent() {
         let name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let dir_new = parent.to_path_buf();
         let result = load_directory_rows(&dir_new);
@@ -95,7 +89,6 @@ fn navigate_up_panel(app_state: &mut AppState) {
                 state.select(Some(selected_new));
             }
             Err(e) => {
-                // TODO Display error
                 app_state.is_error_displayed = true;
                 app_state.error_message = e.to_string();
             }
@@ -130,7 +123,6 @@ fn enter_directory_panel(app_state: &mut AppState) {
                             state.select(Some(selected_new));
                         }
                         Err(e) => {
-                            // TODO Display error
                             app_state.is_error_displayed = true;
                             app_state.error_message = e.to_string();
                         }
@@ -148,7 +140,6 @@ fn enter_directory_panel(app_state: &mut AppState) {
                         state.select(Some(0));
                     }
                     Err(e) => {
-                        // TODO Display error
                         app_state.is_error_displayed = true;
                         app_state.error_message = e.to_string();
                     }
