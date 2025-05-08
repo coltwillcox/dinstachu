@@ -14,22 +14,28 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                 KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                 KeyCode::Tab => app_state.is_left_active = !app_state.is_left_active,
-                KeyCode::Down => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, len| {
+                KeyCode::Down => handle_move_selection(app_state, |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
                 }),
-                KeyCode::Up => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, len| {
+                KeyCode::Up => handle_move_selection(app_state, |state, len| {
                     state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
                 }),
-                KeyCode::PageDown => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, len| {
-                    state.select(state.selected().map(|selected| (selected + app_state.page_size as usize).min(len.saturating_sub(1))));
-                }),
-                KeyCode::PageUp => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, _len| {
-                    state.select(state.selected().map(|selected| selected.saturating_sub(app_state.page_size as usize)));
-                }),
-                KeyCode::Home => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, _len| {
+                KeyCode::PageDown => {
+                    let page_size = app_state.page_size as usize;
+                    handle_move_selection(app_state, |state, len| {
+                        state.select(state.selected().map(|selected| (selected + page_size).min(len.saturating_sub(1))));
+                    })
+                }
+                KeyCode::PageUp => {
+                    let page_size = app_state.page_size as usize;
+                    handle_move_selection(app_state, |state, _len| {
+                        state.select(state.selected().map(|selected| selected.saturating_sub(page_size)));
+                    })
+                }
+                KeyCode::Home => handle_move_selection(app_state, |state, _len| {
                     state.select(Some(0));
                 }),
-                KeyCode::End => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, app_state.rows_left.len(), &mut app_state.state_right, app_state.rows_right.len(), |state, len| {
+                KeyCode::End => handle_move_selection(app_state, |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
                 KeyCode::Backspace => handle_navigate_up(
@@ -61,8 +67,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     Ok(true)
 }
 
-fn handle_move_selection(is_left_active: bool, state_left: &mut TableState, len_left: usize, state_right: &mut TableState, len_right: usize, move_fn: impl Fn(&mut TableState, usize)) {
-    let (state, len) = if is_left_active { (state_left, len_left) } else { (state_right, len_right) };
+// fn handle_move_selection(is_left_active: bool, state_left: &mut TableState, len_left: usize, state_right: &mut TableState, len_right: usize, move_fn: impl Fn(&mut TableState, usize)) {
+fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableState, usize)) {
+    let (state, len) = if app_state.is_left_active {
+        (&mut app_state.state_left, app_state.rows_left.len())
+    } else {
+        (&mut app_state.state_right, app_state.rows_right.len())
+    };
     move_fn(state, len);
 }
 
