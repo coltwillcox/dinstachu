@@ -1,3 +1,4 @@
+use crate::app::Item;
 use crate::constants::*;
 use crate::utils::format_size;
 use ratatui::{
@@ -8,14 +9,6 @@ use ratatui::{
 use std::fs::{DirEntry, read_dir};
 use std::io::Error;
 use std::path::PathBuf;
-
-#[derive(Debug, Clone)]
-pub struct Item {
-    pub name: String,
-    pub extension: String,
-    pub is_dir: bool,
-    pub size: String,
-}
 
 pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item>), Error> {
     let mut entries: Vec<DirEntry>;
