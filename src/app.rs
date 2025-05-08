@@ -1,3 +1,4 @@
+use crate::fs_ops::get_root_path;
 use ratatui::widgets::{Row, TableState};
 use std::path::PathBuf;
 
@@ -25,20 +26,25 @@ pub struct Item {
     pub size: String,
 }
 
-// TODO Get root path
 impl AppState<'_> {
     pub fn new() -> Self {
         let mut state_left = TableState::default();
         state_left.select(Some(1));
         let mut state_right = TableState::default();
         state_right.select(Some(1));
+        let mut dir_root = PathBuf::new();
+
+        match get_root_path() {
+            Ok(root) => dir_root = root,
+            Err(e) => eprintln!("Error getting root path: {}", e),
+        }
 
         Self {
             is_error_displayed: false,
             is_f1_displayed: false,
             is_left_active: true,
-            dir_left: PathBuf::from("/"),
-            dir_right: PathBuf::from("/"),
+            dir_left: dir_root.clone(),
+            dir_right: dir_root.clone(),
             page_size: 0,
             state_left,
             state_right,

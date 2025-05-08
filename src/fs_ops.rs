@@ -6,6 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Cell, Row},
 };
+use std::env;
 use std::fs::{DirEntry, read_dir};
 use std::io::Error;
 use std::path::PathBuf;
@@ -77,4 +78,23 @@ pub fn load_directory_rows<'a>(path: &PathBuf) -> Result<(Vec<Row<'a>>, Vec<Item
     }
 
     Ok((rows, children))
+}
+
+pub fn get_root_path() -> Result<PathBuf, std::io::Error> {
+    env::current_dir().map(|path_current| {
+        let mut path = path_current;
+        while let Some(parent) = path.parent() {
+            if parent.components().count() == 1 {
+                // This likely indicates the root directory on Unix-like systems.
+                return parent.to_path_buf();
+            }
+            #[cfg(windows)]
+            if parent.as_os_str().as_bytes().contains(&b':') && parent.parent().is_none() {
+                // This likely indicates the root of a drive on Windows (e.g., "C:").
+                return parent.to_path_buf();
+            }
+            path = parent.to_path_buf();
+        }
+        path // Fallback to the current directory if no clear root is found.
+    })
 }
