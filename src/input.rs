@@ -38,8 +38,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 KeyCode::End => handle_move_selection(app_state, |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
-                KeyCode::Backspace => handle_navigate_up(app_state)?,
-                KeyCode::Enter => handle_enter_directory(app_state)?,
+                KeyCode::Backspace => handle_navigate_up(app_state),
+                KeyCode::Enter => handle_enter_directory(app_state),
                 _ => {}
             }
         }
@@ -56,24 +56,23 @@ fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableSt
     move_fn(state, len);
 }
 
-fn handle_navigate_up(app_state: &mut AppState) -> Result<()> {
+fn handle_navigate_up(app_state: &mut AppState) {
     handle_panel_operation(app_state, navigate_up_panel)
 }
 
-fn handle_enter_directory(app_state: &mut AppState) -> Result<()> {
+fn handle_enter_directory(app_state: &mut AppState) {
     handle_panel_operation(app_state, enter_directory_panel)
 }
 
-fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut PathBuf, &mut Vec<Row>, &mut Vec<Item>, &mut TableState) -> Result<()>) -> Result<()> {
+fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut PathBuf, &mut Vec<Row>, &mut Vec<Item>, &mut TableState)) {
     if app_state.is_left_active {
-        operation(&mut app_state.dir_left, &mut app_state.rows_left, &mut app_state.children_left, &mut app_state.state_left)?;
+        operation(&mut app_state.dir_left, &mut app_state.rows_left, &mut app_state.children_left, &mut app_state.state_left);
     } else {
-        operation(&mut app_state.dir_right, &mut app_state.rows_right, &mut app_state.children_right, &mut app_state.state_right)?;
+        operation(&mut app_state.dir_right, &mut app_state.rows_right, &mut app_state.children_right, &mut app_state.state_right);
     }
-    Ok(())
 }
 
-fn navigate_up_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) -> Result<()> {
+fn navigate_up_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) {
     if let Some(parent) = dir.parent() {
         let name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let dir_new = parent.to_path_buf();
@@ -91,10 +90,9 @@ fn navigate_up_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<
             }
         }
     }
-    Ok(())
 }
 
-fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState, item: &Item) -> Result<()> {
+fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState, item: &Item) {
     if item.name == ".." {
         if let Some(parent) = current_dir.parent() {
             let name_current = current_dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
@@ -134,14 +132,12 @@ fn navigate_or_load(current_dir: &mut PathBuf, rows: &mut Vec<Row>, children: &m
             }
         }
     }
-    Ok(())
 }
 
-fn enter_directory_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) -> Result<()> {
+fn enter_directory_panel(dir: &mut PathBuf, rows: &mut Vec<Row>, children: &mut Vec<Item>, state: &mut TableState) {
     if let Some(selected_index) = state.selected() {
         if let Some(item) = children.get(selected_index).cloned() {
-            navigate_or_load(dir, rows, children, state, &item)?;
+            navigate_or_load(dir, rows, children, state, &item);
         }
     }
-    Ok(())
 }
