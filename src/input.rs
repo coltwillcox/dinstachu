@@ -32,8 +32,28 @@ pub fn handle_input(rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, childre
                 KeyCode::End => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
-                KeyCode::Backspace => handle_navigate_up(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, &mut app_state.state_left, &mut app_state.dir_right, rows_right, children_right, &mut app_state.state_right)?,
-                KeyCode::Enter => handle_enter_directory(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, &mut app_state.state_left, &mut app_state.dir_right, rows_right, children_right, &mut app_state.state_right)?,
+                KeyCode::Backspace => handle_navigate_up(
+                    app_state.is_left_active,
+                    &mut app_state.dir_left,
+                    rows_left,
+                    children_left,
+                    &mut app_state.state_left,
+                    &mut app_state.dir_right,
+                    rows_right,
+                    children_right,
+                    &mut app_state.state_right,
+                )?,
+                KeyCode::Enter => handle_enter_directory(
+                    app_state.is_left_active,
+                    &mut app_state.dir_left,
+                    rows_left,
+                    children_left,
+                    &mut app_state.state_left,
+                    &mut app_state.dir_right,
+                    rows_right,
+                    children_right,
+                    &mut app_state.state_right,
+                )?,
                 _ => {}
             }
         }

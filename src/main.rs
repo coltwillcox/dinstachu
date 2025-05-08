@@ -12,7 +12,7 @@ use crossterm::{
 };
 use fs_ops::load_directory_rows;
 use input::handle_input;
-use ratatui::{Terminal, backend::CrosstermBackend, widgets::TableState};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;
 use std::io::{Result, stdout};
 use ui::render_ui;
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     // TODO Check for error
     let (mut rows_left, mut children_left) = load_directory_rows(&app_state.dir_left)?;
     let (mut rows_right, mut children_right) = load_directory_rows(&app_state.dir_right)?;
-    
+
     loop {
         render_ui(&mut terminal, &rows_left, &rows_right, &mut app_state);
         if !handle_input(&mut rows_left, &mut rows_right, &mut children_left, &mut children_right, &mut app_state)? {

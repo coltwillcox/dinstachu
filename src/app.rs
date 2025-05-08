@@ -14,10 +14,10 @@ pub struct AppState {
 // TODO Get root path
 impl AppState {
     pub fn new() -> Self {
-		let mut state_left = TableState::default();
+        let mut state_left = TableState::default();
         state_left.select(Some(1));
-		let mut state_right = TableState::default();
-		state_right.select(Some(1));
+        let mut state_right = TableState::default();
+        state_right.select(Some(1));
 
         Self {
             is_f1_displayed: false,
@@ -25,8 +25,8 @@ impl AppState {
             dir_left: PathBuf::from("/"),
             dir_right: PathBuf::from("/"),
             page_size: 0,
-			state_left: state_left,
-			state_right: state_right,
+            state_left: state_left,
+            state_right: state_right,
         }
     }
 }

@@ -1,4 +1,3 @@
-use crate::app;
 use crate::app::AppState;
 use crate::constants::*;
 use crate::utils::*;
@@ -9,12 +8,12 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table},
 };
 use std::path::PathBuf;
 
 pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], app_state: &mut AppState) {
-    terminal.draw(|f| {
+    let _ = terminal.draw(|f| {
         let area = f.area();
         let chunks_main = Layout::default()
             .direction(Direction::Vertical)
