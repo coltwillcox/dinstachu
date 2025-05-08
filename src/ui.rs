@@ -133,7 +133,7 @@ fn render_error_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut Ap
     let popup_block = Block::default()
         .title(Line::from(Span::styled(" Error ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::ALL)
-        .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
+        .style(Style::default().fg(COLOR_BORDER));
 
     f.render_widget(Clear::default(), popup_area); // `Clear` is important to draw over the existing content.
     f.render_widget(popup_block, popup_area);
@@ -149,7 +149,7 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
     let popup_block = Block::default()
         .title(Line::from(Span::styled(" Help/About ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::ALL)
-        .style(Style::default().fg(COLOR_BORDER).bg(Color::Black));
+        .style(Style::default().fg(COLOR_BORDER));
 
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
