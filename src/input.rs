@@ -6,18 +6,7 @@ use std::io::Result;
 use std::path::PathBuf;
 use std::time::Duration;
 
-pub fn handle_input(
-    dir_left: &mut PathBuf,
-    dir_right: &mut PathBuf,
-    state_left: &mut TableState,
-    state_right: &mut TableState,
-    rows_left: &mut Vec<Row>,
-    rows_right: &mut Vec<Row>,
-    children_left: &mut Vec<Item>,
-    children_right: &mut Vec<Item>,
-    app_state: &mut AppState,
-    page_size: u16,
-) -> Result<bool> {
+pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, children_left: &mut Vec<Item>, children_right: &mut Vec<Item>, app_state: &mut AppState, page_size: u16) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
@@ -43,8 +32,8 @@ pub fn handle_input(
                 KeyCode::End => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
-                KeyCode::Backspace => handle_navigate_up(app_state.is_left_active, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right)?,
-                KeyCode::Enter => handle_enter_directory(app_state.is_left_active, dir_left, rows_left, children_left, state_left, dir_right, rows_right, children_right, state_right)?,
+                KeyCode::Backspace => handle_navigate_up(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, state_left, &mut app_state.dir_right, rows_right, children_right, state_right)?,
+                KeyCode::Enter => handle_enter_directory(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, state_left, &mut app_state.dir_right, rows_right, children_right, state_right)?,
                 _ => {}
             }
         }

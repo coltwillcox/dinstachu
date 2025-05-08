@@ -13,7 +13,7 @@ use ratatui::{
 use std::io::Result;
 use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) -> Result<u16> {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) -> Result<u16> {
     let mut page_size = 0;
 
     terminal.draw(|f| {
@@ -24,7 +24,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
             .split(area);
 
         render_top_panel(f, chunks_main[0]);
-        render_path_bar(f, chunks_main[1], dir_left, dir_right, area.width);
+        render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
         page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, app_state.is_left_active);
         render_bottom_panel(f, chunks_main[3], area.width);
         render_fkey_bar(f, chunks_main[4]);
