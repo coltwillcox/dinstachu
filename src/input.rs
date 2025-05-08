@@ -6,7 +6,7 @@ use std::io::Result;
 use std::path::PathBuf;
 use std::time::Duration;
 
-pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, children_left: &mut Vec<Item>, children_right: &mut Vec<Item>, app_state: &mut AppState) -> Result<bool> {
+pub fn handle_input(rows_left: &mut Vec<Row>, rows_right: &mut Vec<Row>, children_left: &mut Vec<Item>, children_right: &mut Vec<Item>, app_state: &mut AppState) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
             match key.code {
@@ -14,26 +14,26 @@ pub fn handle_input(state_left: &mut TableState, state_right: &mut TableState, r
                 KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                 KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                 KeyCode::Tab => app_state.is_left_active = !app_state.is_left_active,
-                KeyCode::Down => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                KeyCode::Down => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
                 }),
-                KeyCode::Up => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                KeyCode::Up => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, len| {
                     state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
                 }),
-                KeyCode::PageDown => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                KeyCode::PageDown => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, len| {
                     state.select(state.selected().map(|selected| (selected + app_state.page_size as usize).min(len.saturating_sub(1))));
                 }),
-                KeyCode::PageUp => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, _len| {
+                KeyCode::PageUp => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, _len| {
                     state.select(state.selected().map(|selected| selected.saturating_sub(app_state.page_size as usize)));
                 }),
-                KeyCode::Home => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, _len| {
+                KeyCode::Home => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, _len| {
                     state.select(Some(0));
                 }),
-                KeyCode::End => handle_move_selection(app_state.is_left_active, state_left, rows_left.len(), state_right, rows_right.len(), |state, len| {
+                KeyCode::End => handle_move_selection(app_state.is_left_active, &mut app_state.state_left, rows_left.len(), &mut app_state.state_right, rows_right.len(), |state, len| {
                     state.select(Some(len.saturating_sub(1)));
                 }),
-                KeyCode::Backspace => handle_navigate_up(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, state_left, &mut app_state.dir_right, rows_right, children_right, state_right)?,
-                KeyCode::Enter => handle_enter_directory(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, state_left, &mut app_state.dir_right, rows_right, children_right, state_right)?,
+                KeyCode::Backspace => handle_navigate_up(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, &mut app_state.state_left, &mut app_state.dir_right, rows_right, children_right, &mut app_state.state_right)?,
+                KeyCode::Enter => handle_enter_directory(app_state.is_left_active, &mut app_state.dir_left, rows_left, children_left, &mut app_state.state_left, &mut app_state.dir_right, rows_right, children_right, &mut app_state.state_right)?,
                 _ => {}
             }
         }

@@ -1,3 +1,4 @@
+use crate::app;
 use crate::app::AppState;
 use crate::constants::*;
 use crate::utils::*;
@@ -12,7 +13,7 @@ use ratatui::{
 };
 use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows_right: &[Row], app_state: &mut AppState) {
     terminal.draw(|f| {
         let area = f.area();
         let chunks_main = Layout::default()
@@ -22,7 +23,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, rows_left: &[Row], rows
 
         render_top_panel(f, chunks_main[0]);
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
-        app_state.page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, app_state.is_left_active);
+        app_state.page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, app_state);
         render_bottom_panel(f, chunks_main[3], area.width);
         render_fkey_bar(f, chunks_main[4]);
 
@@ -65,7 +66,7 @@ fn render_path_bar(f: &mut ratatui::Frame<'_>, area: Rect, dir_left: &PathBuf, d
     f.render_widget(Paragraph::new(Line::from(border_line)), area);
 }
 
-fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_left: bool) -> u16 {
+fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, rows_left: &[Row], rows_right: &[Row], app_state: &mut AppState) -> u16 {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)]).split(chunk);
 
     let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
@@ -80,9 +81,9 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, rows_left: &[Row]
     let table_left = Table::new(rows_left.to_vec(), widths.clone())
         .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
-        .row_highlight_style(table_style(is_left))
+        .row_highlight_style(table_style(app_state.is_left_active))
         .column_spacing(1);
-    f.render_stateful_widget(table_left, chunks[0], &mut state_left.clone());
+    f.render_stateful_widget(table_left, chunks[0], &mut app_state.state_left);
 
     let separator_vertical = Paragraph::new(Text::raw("│\n".repeat((chunks[0].height - 1) as usize) + "│")).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
@@ -90,9 +91,9 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, rows_left: &[Row]
     let table_right = Table::new(rows_right.to_vec(), widths)
         .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
-        .row_highlight_style(table_style(!is_left))
+        .row_highlight_style(table_style(!app_state.is_left_active))
         .column_spacing(1);
-    f.render_stateful_widget(table_right, chunks[2], &mut state_right.clone());
+    f.render_stateful_widget(table_right, chunks[2], &mut app_state.state_right);
 
     chunks[0].height
 }

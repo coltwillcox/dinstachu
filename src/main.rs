@@ -39,16 +39,10 @@ fn main() -> Result<()> {
     // TODO Check for error
     let (mut rows_left, mut children_left) = load_directory_rows(&app_state.dir_left)?;
     let (mut rows_right, mut children_right) = load_directory_rows(&app_state.dir_right)?;
-
-    let mut state_left = TableState::default();
-    let mut state_right = TableState::default();
-
-    state_left.select(Some(1));
-    state_right.select(Some(1));
-
+    
     loop {
-        render_ui(&mut terminal, &rows_left, &rows_right, &state_left, &state_right, &mut app_state);
-        if !handle_input(&mut state_left, &mut state_right, &mut rows_left, &mut rows_right, &mut children_left, &mut children_right, &mut app_state)? {
+        render_ui(&mut terminal, &rows_left, &rows_right, &mut app_state);
+        if !handle_input(&mut rows_left, &mut rows_right, &mut children_left, &mut children_right, &mut app_state)? {
             break;
         }
     }
