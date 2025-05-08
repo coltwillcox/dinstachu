@@ -15,7 +15,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 }
                 KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                 KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
-                KeyCode::Tab => app_state.is_left_active = !app_state.is_left_active,
+                KeyCode::Tab => handle_tab_switching(app_state),
                 KeyCode::Down => handle_move_selection(app_state, |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
                 }),
@@ -49,7 +49,17 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     Ok(true)
 }
 
+fn handle_tab_switching(app_state: &mut AppState<'_>) {
+	if app_state.is_error_displayed || app_state.is_f1_displayed {
+		return;
+	}
+	app_state.is_left_active = !app_state.is_left_active
+}
+
 fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableState, usize)) {
+	if app_state.is_error_displayed || app_state.is_f1_displayed {
+		return;
+	}
     let (state, len) = if app_state.is_left_active {
         (&mut app_state.state_left, app_state.rows_left.len())
     } else {
@@ -67,6 +77,9 @@ fn handle_enter_directory(app_state: &mut AppState) {
 }
 
 fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut AppState)) {
+	if app_state.is_error_displayed || app_state.is_f1_displayed {
+		return;
+	}
     operation(app_state);
 }
 
