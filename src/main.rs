@@ -1,9 +1,11 @@
+mod app;
 mod constants;
 mod fs_ops;
 mod input;
 mod ui;
 mod utils;
 
+use app::AppState;
 use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
@@ -23,7 +25,7 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-	// TODO Get root path
+    // TODO Get root path
     let mut dir_left = PathBuf::from("/");
     let mut dir_right = PathBuf::from("/");
 
@@ -37,7 +39,7 @@ fn main() -> Result<()> {
         }
     }
 
-	// TODO Check for error
+    // TODO Check for error
     let (mut rows_left, mut children_left) = load_directory_rows(&dir_left.clone())?;
     let (mut rows_right, mut children_right) = load_directory_rows(&dir_right.clone())?;
 
@@ -47,12 +49,12 @@ fn main() -> Result<()> {
     state_left.select(Some(1));
     state_right.select(Some(1));
 
-    let mut is_left = true;
-    let mut is_f1_displayed = false;
+    let mut app_state: AppState = AppState::new();
+
     let mut page_size: u16;
 
     loop {
-        page_size = render_ui(&mut terminal, &mut dir_left, &mut dir_right, &rows_left, &rows_right, &state_left, &state_right, is_f1_displayed, is_left)?;
+        page_size = render_ui(&mut terminal, &mut dir_left, &mut dir_right, &rows_left, &rows_right, &state_left, &state_right, &mut app_state)?;
         if !handle_input(
             &mut dir_left,
             &mut dir_right,
@@ -62,8 +64,7 @@ fn main() -> Result<()> {
             &mut rows_right,
             &mut children_left,
             &mut children_right,
-            &mut is_left,
-            &mut is_f1_displayed,
+            &mut app_state,
             page_size,
         )? {
             break;

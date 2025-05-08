@@ -1,3 +1,4 @@
+use crate::app::AppState;
 use crate::constants::*;
 use crate::utils::*;
 use chrono::Local;
@@ -12,7 +13,7 @@ use ratatui::{
 use std::io::Result;
 use std::path::PathBuf;
 
-pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, is_f1_displayed: bool, is_left: bool) -> Result<u16> {
+pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf, dir_right: &mut PathBuf, rows_left: &[Row], rows_right: &[Row], state_left: &TableState, state_right: &TableState, app_state: &mut AppState) -> Result<u16> {
     let mut page_size = 0;
 
     terminal.draw(|f| {
@@ -24,11 +25,11 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, dir_left: &mut PathBuf,
 
         render_top_panel(f, chunks_main[0]);
         render_path_bar(f, chunks_main[1], dir_left, dir_right, area.width);
-        page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, is_left);
+        page_size = render_file_tables(f, chunks_main[2], rows_left, rows_right, state_left, state_right, app_state.is_left_active);
         render_bottom_panel(f, chunks_main[3], area.width);
         render_fkey_bar(f, chunks_main[4]);
 
-        if is_f1_displayed {
+        if app_state.is_f1_displayed {
             render_help_popup(f, area);
         }
     })?;
