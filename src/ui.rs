@@ -156,7 +156,7 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, total_width: u16)
 fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
     let block_bottom = Block::default()
         .title_bottom(Line::from(Span::styled(" F1 Help ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F2 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F2 Rename ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F3 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
@@ -196,7 +196,11 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         Paragraph::new("F1 - This help").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 3, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("F2 - Rename folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 4, horizontal: 2 }));
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {

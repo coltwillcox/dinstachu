@@ -103,4 +103,10 @@ impl AppState {
     pub fn reset_cursor(&mut self) {
         self.rename_character_index = 0;
     }
+
+    pub fn reset_rename(&mut self) {
+        self.rename_character_index = 0;
+        self.rename_input = String::new();
+        self.is_f2_displayed = false;
+    }
 }

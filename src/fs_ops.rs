@@ -1,6 +1,6 @@
+use crate::app::AppState;
 use crate::app::Item;
 use crate::utils::format_size;
-use crate::app::AppState;
 use std::env;
 use std::fs::{DirEntry, read_dir};
 use std::io::Error;

@@ -1,4 +1,4 @@
-use crate::app::{AppState, Item};
+use crate::app::{self, AppState, Item};
 use crate::fs_ops::load_directory_rows;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::TableState;
@@ -10,10 +10,10 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
         if let Event::Key(key) = event::read()? {
             if app_state.is_f2_displayed {
                 match key.code {
-                    KeyCode::Esc => handle_esc(app_state),                                   // TODO reset rename_input
-                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed, // TODO set rename_input
-                    KeyCode::F(10) => return Ok(false),                                      // Temp 'q' debug
-                    // KeyCode::Enter => app_state.submit_message(),
+                    KeyCode::Esc => handle_esc(app_state), // TODO reset rename_input
+                    KeyCode::F(2) => toggle_rename(app_state),
+                    KeyCode::F(10) => return Ok(false), // Temp 'q' debug
+                    KeyCode::Enter => handle_rename(app_state),
                     KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
                     KeyCode::Backspace => app_state.delete_char(),
                     KeyCode::Left => app_state.move_cursor_left(),
@@ -61,10 +61,20 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     Ok(true)
 }
 
+fn toggle_rename(app_state: &mut AppState) {
+    // TODO set rename_input
+    app_state.is_f2_displayed = !app_state.is_f2_displayed
+}
+
+fn handle_rename(app_state: &mut AppState) {
+    // TODO call fps_ops rename
+    app_state.reset_rename();
+}
+
 fn handle_esc(app_state: &mut AppState) {
     app_state.is_error_displayed = false;
     app_state.is_f1_displayed = false;
-    app_state.is_f2_displayed = false;
+    app_state.reset_rename();
 }
 
 fn handle_tab_switching(app_state: &mut AppState) {
