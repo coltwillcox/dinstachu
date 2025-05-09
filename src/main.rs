@@ -25,9 +25,9 @@ fn main() -> Result<()> {
 
     let mut app_state: AppState = AppState::new();
 
-    match load_directory_rows(&app_state.dir_left) {
-        Ok((rows, items)) => {
-            app_state.rows_left = rows;
+    match load_directory_rows(&app_state, &app_state.dir_left) {
+        Ok(items) => {
+            // app_state.rows_left = rows;
             app_state.children_left = items;
         }
         Err(e) => {
@@ -35,9 +35,9 @@ fn main() -> Result<()> {
             app_state.error_message = e.to_string();
         }
     }
-    match load_directory_rows(&app_state.dir_right) {
-        Ok((rows, items)) => {
-            app_state.rows_right = rows;
+    match load_directory_rows(&app_state, &app_state.dir_right) {
+        Ok(items) => {
+            // app_state.rows_right = rows;
             app_state.children_right = items;
         }
         Err(e) => {

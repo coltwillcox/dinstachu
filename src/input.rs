@@ -1,4 +1,4 @@
-use crate::app::AppState;
+use crate::app::{AppState, Item};
 use crate::fs_ops::load_directory_rows;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::TableState;
@@ -8,62 +8,75 @@ use std::time::Duration;
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Esc => {
-                    app_state.is_error_displayed = false;
-                    app_state.is_f1_displayed = false;
+            if app_state.is_f2_displayed {
+                match key.code {
+                    KeyCode::Esc => handle_esc(app_state),
+                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed,
+                    KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
+                    _ => {}
                 }
-                KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
-                KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
-                KeyCode::Tab => handle_tab_switching(app_state),
-                KeyCode::Down => handle_move_selection(app_state, |state, len| {
-                    state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
-                }),
-                KeyCode::Up => handle_move_selection(app_state, |state, len| {
-                    state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
-                }),
-                KeyCode::PageDown => {
-                    let page_size = app_state.page_size as usize;
-                    handle_move_selection(app_state, |state, len| {
-                        state.select(state.selected().map(|selected| (selected + page_size).min(len.saturating_sub(1))));
-                    })
+            } else {
+                match key.code {
+                    KeyCode::Esc => handle_esc(app_state),
+                    KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
+                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed,
+                    KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
+                    KeyCode::Tab => handle_tab_switching(app_state),
+                    KeyCode::Down => handle_move_selection(app_state, |state, len| {
+                        state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                    }),
+                    KeyCode::Up => handle_move_selection(app_state, |state, len| {
+                        state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                    }),
+                    KeyCode::PageDown => {
+                        let page_size = app_state.page_size as usize;
+                        handle_move_selection(app_state, |state, len| {
+                            state.select(state.selected().map(|selected| (selected + page_size).min(len.saturating_sub(1))));
+                        })
+                    }
+                    KeyCode::PageUp => {
+                        let page_size = app_state.page_size as usize;
+                        handle_move_selection(app_state, |state, _len| {
+                            state.select(state.selected().map(|selected| selected.saturating_sub(page_size)));
+                        })
+                    }
+                    KeyCode::Home => handle_move_selection(app_state, |state, _len| {
+                        state.select(Some(0));
+                    }),
+                    KeyCode::End => handle_move_selection(app_state, |state, len| {
+                        state.select(Some(len.saturating_sub(1)));
+                    }),
+                    KeyCode::Backspace => handle_navigate_up(app_state),
+                    KeyCode::Enter => handle_enter_directory(app_state),
+                    _ => {}
                 }
-                KeyCode::PageUp => {
-                    let page_size = app_state.page_size as usize;
-                    handle_move_selection(app_state, |state, _len| {
-                        state.select(state.selected().map(|selected| selected.saturating_sub(page_size)));
-                    })
-                }
-                KeyCode::Home => handle_move_selection(app_state, |state, _len| {
-                    state.select(Some(0));
-                }),
-                KeyCode::End => handle_move_selection(app_state, |state, len| {
-                    state.select(Some(len.saturating_sub(1)));
-                }),
-                KeyCode::Backspace => handle_navigate_up(app_state),
-                KeyCode::Enter => handle_enter_directory(app_state),
-                _ => {}
             }
         }
     }
     Ok(true)
 }
 
-fn handle_tab_switching(app_state: &mut AppState<'_>) {
-	if app_state.is_error_displayed || app_state.is_f1_displayed {
-		return;
-	}
-	app_state.is_left_active = !app_state.is_left_active
+fn handle_esc(app_state: &mut AppState) {
+    app_state.is_error_displayed = false;
+    app_state.is_f1_displayed = false;
+    app_state.is_f2_displayed = false;
+}
+
+fn handle_tab_switching(app_state: &mut AppState) {
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
+    app_state.is_left_active = !app_state.is_left_active
 }
 
 fn handle_move_selection(app_state: &mut AppState, move_fn: impl Fn(&mut TableState, usize)) {
-	if app_state.is_error_displayed || app_state.is_f1_displayed {
-		return;
-	}
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
     let (state, len) = if app_state.is_left_active {
-        (&mut app_state.state_left, app_state.rows_left.len())
+        (&mut app_state.state_left, app_state.children_left.len())
     } else {
-        (&mut app_state.state_right, app_state.rows_right.len())
+        (&mut app_state.state_right, app_state.children_right.len())
     };
     move_fn(state, len);
 }
@@ -77,28 +90,85 @@ fn handle_enter_directory(app_state: &mut AppState) {
 }
 
 fn handle_panel_operation(app_state: &mut AppState, operation: impl FnOnce(&mut AppState)) {
-	if app_state.is_error_displayed || app_state.is_f1_displayed {
-		return;
-	}
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
     operation(app_state);
 }
 
 fn navigate_up_panel(app_state: &mut AppState) {
-    let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
-    let rows = if app_state.is_left_active { &mut app_state.rows_left } else { &mut app_state.rows_right };
-    let children = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
-    let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
+    let dir_new: std::path::PathBuf;
+    let name_current: String;
 
-	if let Some(parent) = dir.parent() {
-        let name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        let dir_new = parent.to_path_buf();
-        let result = load_directory_rows(&dir_new);
+    {
+        let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
+        name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        if let Some(parent) = dir.parent() {
+            dir_new = parent.to_path_buf();
+        } else {
+            return;
+        }
+    }
+
+    let result = load_directory_rows(&app_state, &dir_new);
+    match result {
+        Ok(children_new) => {
+            let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
+            let children = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
+            let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
+
+            *dir = dir_new;
+            *children = children_new;
+            let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
+            state.select(Some(selected_new));
+        }
+        Err(e) => {
+            app_state.is_error_displayed = true;
+            app_state.error_message = e.to_string();
+        }
+    }
+}
+
+fn enter_directory_panel(app_state: &mut AppState) {
+    let selected_item: Option<Item>;
+    let mut parent_dir_new: Option<std::path::PathBuf>;
+    let current_dir_name: Option<String>;
+    let mut enter_subdir: Option<std::path::PathBuf>;
+
+    {
+        let state = if app_state.is_left_active { &app_state.state_left } else { &app_state.state_right };
+        let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+        let dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+
+        selected_item = state.selected().and_then(|index| children.get(index).cloned());
+        parent_dir_new = None;
+        current_dir_name = dir.file_name().map(|n| n.to_string_lossy().to_string());
+        enter_subdir = None;
+
+        if let Some(item) = &selected_item {
+            if item.name == ".." {
+                if let Some(parent) = dir.parent() {
+                    parent_dir_new = Some(parent.to_path_buf());
+                }
+            } else if item.is_dir {
+                let mut dir_new = dir.clone();
+                dir_new.push(item.name.clone());
+                enter_subdir = Some(dir_new);
+            }
+        }
+    }
+
+    if let Some(dir_new) = parent_dir_new {
+        let result = load_directory_rows(&app_state, &dir_new);
         match result {
-            Ok((rows_new, children_new)) => {
+            Ok(children_new) => {
+                let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
+                let children_mut = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
+                let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
+
                 *dir = dir_new;
-                *rows = rows_new;
-                *children = children_new;
-                let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
+                *children_mut = children_new;
+                let selected_new = children_mut.iter().position(|item| Some(&item.name) == current_dir_name.as_ref()).unwrap_or(0);
                 state.select(Some(selected_new));
             }
             Err(e) => {
@@ -106,57 +176,21 @@ fn navigate_up_panel(app_state: &mut AppState) {
                 app_state.error_message = e.to_string();
             }
         }
-    }
-}
+    } else if let Some(dir_new) = enter_subdir {
+        let result = load_directory_rows(&app_state, &dir_new);
+        match result {
+            Ok(children_new) => {
+                let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
+                let children = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
+                let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
 
-fn enter_directory_panel(app_state: &mut AppState) {
-    let dir = if app_state.is_left_active { &mut app_state.dir_left } else { &mut app_state.dir_right };
-    let rows = if app_state.is_left_active { &mut app_state.rows_left } else { &mut app_state.rows_right };
-    let children = if app_state.is_left_active { &mut app_state.children_left } else { &mut app_state.children_right };
-    let state = if app_state.is_left_active { &mut app_state.state_left } else { &mut app_state.state_right };
-
-    if let Some(selected_index) = state.selected() {
-        if let Some(item) = children.get(selected_index).cloned() {
-            if item.name == ".." {
-                if let Some(parent) = dir.parent() {
-                    let name_current = dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-                    let dir_new = parent.to_path_buf();
-                    let result = load_directory_rows(&dir_new);
-                    match result {
-                        Ok((rows_new, children_new)) => {
-                            *dir = dir_new;
-                            *rows = rows_new;
-                            *children = children_new;
-                            let mut selected_new: usize = 0;
-                            for (index, item) in children.iter_mut().enumerate() {
-                                if item.name == name_current {
-                                    selected_new = index;
-                                }
-                            }
-                            state.select(Some(selected_new));
-                        }
-                        Err(e) => {
-                            app_state.is_error_displayed = true;
-                            app_state.error_message = e.to_string();
-                        }
-                    }
-                }
-            } else if item.is_dir {
-                let mut dir_new = dir.clone();
-                dir_new.push(item.name.clone());
-                let result = load_directory_rows(&dir_new);
-                match result {
-                    Ok((rows_new, children_new)) => {
-                        *dir = dir_new;
-                        *rows = rows_new;
-                        *children = children_new;
-                        state.select(Some(0));
-                    }
-                    Err(e) => {
-                        app_state.is_error_displayed = true;
-                        app_state.error_message = e.to_string();
-                    }
-                }
+                *dir = dir_new;
+                *children = children_new;
+                state.select(Some(0));
+            }
+            Err(e) => {
+                app_state.is_error_displayed = true;
+                app_state.error_message = e.to_string();
             }
         }
     }

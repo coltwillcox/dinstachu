@@ -1,4 +1,4 @@
-use crate::app::AppState;
+use crate::app::{AppState, Item};
 use crate::constants::*;
 use crate::utils::*;
 use chrono::Local;
@@ -72,14 +72,20 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 
     let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
 
+    // TODO style reflect renaming
     let table_style = |active: bool| {
         Style::default()
-            .bg(if active { COLOR_SELECTED_BACKGROUND } else { COLOR_SELECTED_BACKGROUND_INACTIVE })
+            .bg(if active {
+                if app_state.is_f2_displayed { COLOR_BORDER } else { COLOR_SELECTED_BACKGROUND }
+            } else {
+                COLOR_SELECTED_BACKGROUND_INACTIVE
+            })
             .fg(COLOR_SELECTED_FOREGROUND)
             .add_modifier(Modifier::BOLD)
     };
 
-    let table_left = Table::new(app_state.rows_left.to_vec(), widths.clone())
+    let rows_left = children_to_rows(&app_state, true);
+    let table_left = Table::new(rows_left.to_vec(), widths.clone())
         .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(app_state.is_left_active))
@@ -89,7 +95,8 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     let separator_vertical = Paragraph::new(Text::raw("│\n".repeat((chunks[0].height - 1) as usize) + "│")).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
 
-    let table_right = Table::new(app_state.rows_right.to_vec(), widths)
+    let rows_right = children_to_rows(&app_state, false);
+    let table_right = Table::new(rows_right.to_vec(), widths)
         .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(!app_state.is_left_active))
@@ -97,6 +104,35 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     f.render_stateful_widget(table_right, chunks[2], &mut app_state.state_right);
 
     chunks[0].height
+}
+
+fn children_to_rows<'a>(app_state: &AppState, is_left: bool) -> Vec<Row<'static>> {
+    let mut rows = Vec::<Row<'static>>::new();
+
+    let children = if is_left { &app_state.children_left.clone() } else { &app_state.children_right.clone() };
+
+    // let is_renaming = app_state.is_f2_displayed && (app_state.is_left_active == is_left);
+
+	// TODO name reflects renaming
+    for child in children {
+        let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
+        let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
+
+        rows.push(Row::new(vec![
+            Cell::from(Span::styled(icon, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Line::from(vec![
+                Span::styled(dir_prefix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                Span::styled(child.name.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE })),
+                Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+            ])),
+            Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
+            Cell::from(Span::styled(child.extension.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
+            Cell::from(Span::styled(child.size.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+        ]));
+    }
+
+    return rows;
 }
 
 fn make_header_row() -> Row<'static> {
