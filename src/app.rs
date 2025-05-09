@@ -21,6 +21,7 @@ pub struct AppState {
 
 #[derive(Debug, Clone)]
 pub struct Item {
+    pub name_full: String,
     pub name: String,
     pub extension: String,
     pub is_dir: bool,

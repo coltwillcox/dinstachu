@@ -111,14 +111,16 @@ fn children_to_rows<'a>(app_state: &AppState, is_left: bool) -> Vec<Row<'static>
 
     let children = if is_left { &app_state.children_left.clone() } else { &app_state.children_right.clone() };
 
-    let is_renaming = app_state.is_f2_displayed && (app_state.is_left_active == is_left);
+    let is_renaming_current_side = app_state.is_f2_displayed && (app_state.is_left_active == is_left);
     let selected_index = if is_left { app_state.state_left.selected().unwrap() } else { app_state.state_right.selected().unwrap() };
 
-    // TODO name reflects renaming
     for (index, child) in children.iter().enumerate() {
+        let is_renaming_current_item = is_renaming_current_side && (index == selected_index);
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
-        let name = if is_renaming && index == selected_index { app_state.rename_input.clone() } else { child.name.clone() };
+
+        let name = if is_renaming_current_item { app_state.rename_input.clone() } else { child.name.clone() };
+        let extension = if is_renaming_current_item { String::new() } else { child.extension.clone() };
 
         rows.push(Row::new(vec![
             Cell::from(Span::styled(icon, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
@@ -128,7 +130,7 @@ fn children_to_rows<'a>(app_state: &AppState, is_left: bool) -> Vec<Row<'static>
                 Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
             ])),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
-            Cell::from(Span::styled(child.extension.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled(extension, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
             Cell::from(Span::styled(child.size.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
         ]));

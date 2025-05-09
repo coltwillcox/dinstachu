@@ -30,6 +30,7 @@ pub fn load_directory_rows<'a>(app_state: &AppState, path: &PathBuf) -> Result<(
     // Don't add ".." on root folder.
     if path.parent().is_some() {
         children.push(Item {
+            name_full: "..".to_string(),
             name: "..".to_string(),
             extension: "".to_string(),
             is_dir: true,
@@ -40,15 +41,13 @@ pub fn load_directory_rows<'a>(app_state: &AppState, path: &PathBuf) -> Result<(
     for entry in &entries {
         let path = entry.path();
         let is_dir = path.is_dir();
-        let name = if is_dir {
-            path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
-        } else {
-            path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string()
-        };
+        let name_full = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = if is_dir { name_full.clone() } else { path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string() };
         let extension = if is_dir { "".to_string() } else { path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string() };
         let size = if is_dir { "<DIR>".to_string() } else { format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0)) };
 
         children.push(Item {
+            name_full: name_full.clone(),
             name: name.clone(),
             extension: extension.clone(),
             is_dir,

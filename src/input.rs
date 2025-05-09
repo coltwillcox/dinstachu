@@ -1,4 +1,4 @@
-use crate::app::{self, AppState, Item};
+use crate::app::{AppState, Item};
 use crate::fs_ops::load_directory_rows;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::TableState;
@@ -10,7 +10,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
         if let Event::Key(key) = event::read()? {
             if app_state.is_f2_displayed {
                 match key.code {
-                    KeyCode::Esc => handle_esc(app_state), // TODO reset rename_input
+                    KeyCode::Esc => handle_esc(app_state),
                     KeyCode::F(2) => toggle_rename(app_state),
                     KeyCode::F(10) => return Ok(false), // Temp 'q' debug
                     KeyCode::Enter => handle_rename(app_state),
@@ -24,7 +24,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 match key.code {
                     KeyCode::Esc => handle_esc(app_state),
                     KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
-                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed,
+                    KeyCode::F(2) => toggle_rename(app_state),
                     KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                     KeyCode::Tab => handle_tab_switching(app_state),
                     KeyCode::Down => handle_move_selection(app_state, |state, len| {
@@ -62,8 +62,18 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
 }
 
 fn toggle_rename(app_state: &mut AppState) {
-    // TODO set rename_input
-    app_state.is_f2_displayed = !app_state.is_f2_displayed
+    app_state.is_f2_displayed = !app_state.is_f2_displayed;
+    if app_state.is_f2_displayed {
+        let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap() } else { app_state.state_right.selected().unwrap() };
+        let selected_item = if app_state.is_left_active {
+            app_state.children_left[selected_index].clone()
+        } else {
+            app_state.children_right[selected_index].clone()
+        };
+        app_state.rename_input = selected_item.name_full;
+    } else {
+        app_state.reset_rename();
+    }
 }
 
 fn handle_rename(app_state: &mut AppState) {
