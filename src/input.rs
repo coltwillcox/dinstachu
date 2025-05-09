@@ -10,9 +10,14 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
         if let Event::Key(key) = event::read()? {
             if app_state.is_f2_displayed {
                 match key.code {
-                    KeyCode::Esc => handle_esc(app_state),
-                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed,
-                    KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
+                    KeyCode::Esc => handle_esc(app_state),                                   // TODO reset rename_input
+                    KeyCode::F(2) => app_state.is_f2_displayed = !app_state.is_f2_displayed, // TODO set rename_input
+                    KeyCode::F(10) => return Ok(false),                                      // Temp 'q' debug
+                    // KeyCode::Enter => app_state.submit_message(),
+                    KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
+                    KeyCode::Backspace => app_state.delete_char(),
+                    KeyCode::Left => app_state.move_cursor_left(),
+                    KeyCode::Right => app_state.move_cursor_right(),
                     _ => {}
                 }
             } else {
