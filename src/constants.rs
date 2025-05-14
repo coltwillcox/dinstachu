@@ -12,6 +12,7 @@ pub const COLOR_COLUMNS: Color = Color::Rgb(248, 160, 85);
 pub const COLOR_DIRECTORY: Color = Color::Rgb(255, 230, 45);
 pub const COLOR_DIRECTORY_FIX: Color = Color::Rgb(255, 230, 45);
 pub const COLOR_FILE: Color = Color::Gray;
+pub const COLOR_RENAME_BACKGROUND: Color = Color::Rgb(248, 160, 85);
 pub const COLOR_SELECTED_BACKGROUND: Color = Color::Rgb(255, 230, 45);
 pub const COLOR_SELECTED_BACKGROUND_INACTIVE: Color = Color::DarkGray;
 pub const COLOR_SELECTED_FOREGROUND: Color = Color::Black;

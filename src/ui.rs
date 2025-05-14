@@ -72,11 +72,10 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 
     let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
 
-    // TODO style reflect renaming
     let table_style = |active: bool| {
         Style::default()
             .bg(if active {
-                if app_state.is_f2_displayed { COLOR_BORDER } else { COLOR_SELECTED_BACKGROUND }
+                if app_state.is_f2_displayed { COLOR_RENAME_BACKGROUND } else { COLOR_SELECTED_BACKGROUND }
             } else {
                 COLOR_SELECTED_BACKGROUND_INACTIVE
             })
