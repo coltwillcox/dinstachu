@@ -115,4 +115,14 @@ impl AppState {
         self.rename_input = String::new();
         self.is_f2_displayed = false;
     }
+
+    pub fn display_error(&mut self, message: String) {
+        self.is_error_displayed = true;
+        self.error_message = message;
+    }
+
+    pub fn reset_error(&mut self) {
+        self.is_error_displayed = false;
+        self.error_message = String::new();
+    }
 }

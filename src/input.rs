@@ -94,7 +94,7 @@ fn handle_rename(app_state: &mut AppState) {
             // TODO Refresh list
             Ok(_) => println!("Successfully renamed!"),
             // TODO Display error
-            Err(e) => eprintln!("Error renaming: {}", e),
+            Err(e) => app_state.display_error(e.to_string()),
         }
 
         app_state.reset_rename();
@@ -102,7 +102,7 @@ fn handle_rename(app_state: &mut AppState) {
 }
 
 fn handle_esc(app_state: &mut AppState) {
-    app_state.is_error_displayed = false;
+    app_state.reset_error();
     app_state.is_f1_displayed = false;
     app_state.reset_rename();
 }
@@ -167,10 +167,7 @@ fn navigate_up_panel(app_state: &mut AppState) {
             let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
             state.select(Some(selected_new));
         }
-        Err(e) => {
-            app_state.is_error_displayed = true;
-            app_state.error_message = e.to_string();
-        }
+        Err(e) => app_state.display_error(e.to_string()),
     }
 }
 
@@ -216,10 +213,7 @@ fn enter_directory_panel(app_state: &mut AppState) {
                 let selected_new = children_mut.iter().position(|item| Some(&item.name) == current_dir_name.as_ref()).unwrap_or(0);
                 state.select(Some(selected_new));
             }
-            Err(e) => {
-                app_state.is_error_displayed = true;
-                app_state.error_message = e.to_string();
-            }
+            Err(e) => app_state.display_error(e.to_string()),
         }
     } else if let Some(dir_new) = enter_subdir {
         let result = load_directory_rows(&app_state, &dir_new);
@@ -233,10 +227,7 @@ fn enter_directory_panel(app_state: &mut AppState) {
                 *children = children_new;
                 state.select(Some(0));
             }
-            Err(e) => {
-                app_state.is_error_displayed = true;
-                app_state.error_message = e.to_string();
-            }
+            Err(e) => app_state.display_error(e.to_string()),
         }
     }
 }

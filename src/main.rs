@@ -27,23 +27,15 @@ fn main() -> Result<()> {
 
     match load_directory_rows(&app_state, &app_state.dir_left) {
         Ok(items) => {
-            // app_state.rows_left = rows;
             app_state.children_left = items;
         }
-        Err(e) => {
-            app_state.is_error_displayed = true;
-            app_state.error_message = e.to_string();
-        }
+        Err(e) => app_state.display_error(e.to_string()),
     }
     match load_directory_rows(&app_state, &app_state.dir_right) {
         Ok(items) => {
-            // app_state.rows_right = rows;
             app_state.children_right = items;
         }
-        Err(e) => {
-            app_state.is_error_displayed = true;
-            app_state.error_message = e.to_string();
-        }
+        Err(e) => app_state.display_error(e.to_string()),
     }
 
     loop {
