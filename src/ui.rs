@@ -161,6 +161,10 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F3 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
+		.title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
+		.title_bottom(Line::from(Span::styled(" F7 ", Style::default().fg(COLOR_TITLE))).centered())
+		.title_bottom(Line::from(Span::styled(" F8 ", Style::default().fg(COLOR_TITLE))).centered())
+		.title_bottom(Line::from(Span::styled(" F9 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F10 Quit ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
         .border_style(Style::default().fg(COLOR_BORDER));
