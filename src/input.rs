@@ -91,8 +91,16 @@ fn handle_rename(app_state: &mut AppState) {
         new_path.push(app_state.rename_input.clone());
 
         match rename_path(original_path, new_path) {
-            // TODO Refresh list
-            Ok(_) => println!("Successfully renamed!"),
+            Ok(_) => {
+                match load_directory_rows(&app_state, &app_state.dir_left) {
+                    Ok(items) => app_state.children_left = items,
+                    Err(e) => app_state.display_error(e.to_string()),
+                }
+                match load_directory_rows(&app_state, &app_state.dir_right) {
+                    Ok(items) => app_state.children_right = items,
+                    Err(e) => app_state.display_error(e.to_string()),
+                }
+            }
             Err(e) => app_state.display_error(e.to_string()),
         }
 
