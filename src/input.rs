@@ -1,8 +1,9 @@
 use crate::app::{AppState, Item};
-use crate::fs_ops::load_directory_rows;
+use crate::fs_ops::{load_directory_rows, rename_path};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::TableState;
 use std::io::Result;
+use std::path::PathBuf;
 use std::time::Duration;
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
@@ -78,8 +79,26 @@ fn toggle_rename(app_state: &mut AppState) {
 }
 
 fn handle_rename(app_state: &mut AppState) {
-    // TODO call fps_ops rename
-    app_state.reset_rename();
+    let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+    let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+    let state = if app_state.is_left_active { &app_state.state_left } else { &app_state.state_right };
+    let selected_item = state.selected().and_then(|index| children.get(index).cloned());
+
+    if let Some(item) = &selected_item {
+        let mut original_path = parent_path.clone();
+        original_path.push(item.name_full.clone());
+        let mut new_path = parent_path.clone();
+        new_path.push(app_state.rename_input.clone());
+
+        match rename_path(original_path, new_path) {
+            // TODO Refresh list
+            Ok(_) => println!("Successfully renamed!"),
+            // TODO Display error
+            Err(e) => eprintln!("Error renaming: {}", e),
+        }
+
+        app_state.reset_rename();
+    }
 }
 
 fn handle_esc(app_state: &mut AppState) {

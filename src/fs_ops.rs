@@ -2,7 +2,7 @@ use crate::app::AppState;
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
-use std::fs::{DirEntry, read_dir};
+use std::fs::{DirEntry, read_dir, rename};
 use std::io::Error;
 use std::path::PathBuf;
 
@@ -82,4 +82,9 @@ pub fn get_current_dir() -> Result<PathBuf, std::io::Error> {
         Ok(path) => Ok(path),
         Err(e) => Err(e),
     }
+}
+
+pub fn rename_path(original_path: PathBuf, new_path: PathBuf) -> Result<(), Error> {
+    rename(original_path, new_path)?;
+    Ok(())
 }
