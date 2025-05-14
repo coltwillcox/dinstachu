@@ -71,6 +71,7 @@ fn toggle_rename(app_state: &mut AppState) {
             app_state.children_right[selected_index].clone()
         };
         app_state.rename_input = selected_item.name_full;
+        app_state.move_cursor_end();
     } else {
         app_state.reset_rename();
     }

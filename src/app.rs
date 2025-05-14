@@ -75,6 +75,11 @@ impl AppState {
         self.rename_character_index = self.clamp_cursor(cursor_moved_right);
     }
 
+    pub fn move_cursor_end(&mut self) {
+        let cursor_moved_right = self.rename_character_index.saturating_add(self.rename_input.len());
+        self.rename_character_index = self.clamp_cursor(cursor_moved_right);
+    }
+
     pub fn enter_char(&mut self, new_char: char) {
         let index = self.byte_index();
         self.rename_input.insert(index, new_char);
