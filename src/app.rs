@@ -132,7 +132,7 @@ impl AppState {
         self.is_f7_displayed = false;
     }
 
-    pub fn get_rename_input(&self) -> String {
+    pub fn get_rename_input(&mut self) -> String {
         let (p1, p2) = self.rename_input.split_at(self.rename_character_index);
         return format!("{}{}{}", p1, "_", p2);
     }

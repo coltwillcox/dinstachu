@@ -74,10 +74,11 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 
     let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
 
+	let is_f2_displayed = app_state.is_f2_displayed;
     let table_style = |active: bool| {
         Style::default()
             .bg(if active {
-                if app_state.is_f2_displayed { COLOR_RENAME_BACKGROUND } else { COLOR_SELECTED_BACKGROUND }
+                if is_f2_displayed { COLOR_RENAME_BACKGROUND } else { COLOR_SELECTED_BACKGROUND }
             } else {
                 COLOR_SELECTED_BACKGROUND_INACTIVE
             })
@@ -85,7 +86,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
             .add_modifier(Modifier::BOLD)
     };
 
-    let rows_left = children_to_rows(&app_state, true);
+    let rows_left = children_to_rows(app_state, true);
     let table_left = Table::new(rows_left.to_vec(), widths.clone())
         .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
@@ -96,7 +97,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     let separator_vertical = Paragraph::new(Text::raw("│\n".repeat((chunks[0].height - 1) as usize) + "│")).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
 
-    let rows_right = children_to_rows(&app_state, false);
+    let rows_right = children_to_rows(app_state, false);
     let table_right = Table::new(rows_right.to_vec(), widths)
         .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
@@ -107,7 +108,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     chunks[0].height
 }
 
-fn children_to_rows<'a>(app_state: &AppState, is_left: bool) -> Vec<Row<'static>> {
+fn children_to_rows<'a>(app_state: &mut AppState, is_left: bool) -> Vec<Row<'static>> {
     let mut rows = Vec::<Row<'static>>::new();
 
     let children = if is_left { &app_state.children_left.clone() } else { &app_state.children_right.clone() };
