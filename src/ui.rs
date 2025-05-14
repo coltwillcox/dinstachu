@@ -118,7 +118,7 @@ fn children_to_rows<'a>(app_state: &AppState, is_left: bool) -> Vec<Row<'static>
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
 
-        let name = if is_renaming_current_item { app_state.rename_input.clone() } else { child.name.clone() };
+        let name = if is_renaming_current_item { app_state.get_rename_input() } else { child.name.clone() };
         let extension = if is_renaming_current_item { String::new() } else { child.extension.clone() };
 
         rows.push(Row::new(vec![

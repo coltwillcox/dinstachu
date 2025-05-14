@@ -125,4 +125,9 @@ impl AppState {
         self.is_error_displayed = false;
         self.error_message = String::new();
     }
+
+    pub fn get_rename_input(&self) -> String {
+        let (p1, p2) = self.rename_input.split_at(self.rename_character_index);
+        return format!("{}{}{}", p1, "_", p2);
+    }
 }
