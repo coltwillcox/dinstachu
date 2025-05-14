@@ -6,6 +6,7 @@ pub struct AppState {
     pub is_error_displayed: bool,
     pub is_f1_displayed: bool,
     pub is_f2_displayed: bool,
+    pub is_f7_displayed: bool,
     pub is_left_active: bool,
     pub dir_left: PathBuf,
     pub dir_right: PathBuf,
@@ -51,6 +52,7 @@ impl AppState {
             is_error_displayed,
             is_f1_displayed: false,
             is_f2_displayed: false,
+            is_f7_displayed: false,
             is_left_active: true,
             dir_left: dir_root.clone(),
             dir_right: dir_root.clone(),
@@ -124,6 +126,10 @@ impl AppState {
     pub fn reset_error(&mut self) {
         self.is_error_displayed = false;
         self.error_message = String::new();
+    }
+
+    pub fn reset_create(&mut self) {
+        self.is_f7_displayed = false;
     }
 
     pub fn get_rename_input(&self) -> String {

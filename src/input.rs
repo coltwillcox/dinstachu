@@ -3,7 +3,6 @@ use crate::fs_ops::{load_directory_rows, rename_path};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::widgets::TableState;
 use std::io::Result;
-use std::path::PathBuf;
 use std::time::Duration;
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
@@ -13,7 +12,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 match key.code {
                     KeyCode::Esc => handle_esc(app_state),
                     KeyCode::F(2) => toggle_rename(app_state),
-                    KeyCode::F(10) => return Ok(false), // Temp 'q' debug
+                    KeyCode::F(10) => return Ok(false),
                     KeyCode::Enter => handle_rename(app_state),
                     KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
                     KeyCode::Backspace => app_state.delete_char(),
@@ -21,11 +20,20 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                     KeyCode::Right => app_state.move_cursor_right(),
                     _ => {}
                 }
+            } else if app_state.is_f7_displayed {
+                // TODO
+                match key.code {
+                    KeyCode::Esc => handle_esc(app_state),
+                    KeyCode::F(7) => toggle_create(app_state),
+                    KeyCode::F(10) => return Ok(false),
+                    _ => {}
+                }
             } else {
                 match key.code {
                     KeyCode::Esc => handle_esc(app_state),
                     KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                     KeyCode::F(2) => toggle_rename(app_state),
+                    KeyCode::F(7) => toggle_create(app_state),
                     KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
                     KeyCode::Tab => handle_tab_switching(app_state),
                     KeyCode::Down => handle_move_selection(app_state, |state, len| {
@@ -78,6 +86,10 @@ fn toggle_rename(app_state: &mut AppState) {
     }
 }
 
+fn toggle_create(app_state: &mut AppState) {
+    app_state.is_f7_displayed = !app_state.is_f7_displayed;
+}
+
 fn handle_rename(app_state: &mut AppState) {
     let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
     let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
@@ -112,6 +124,7 @@ fn handle_esc(app_state: &mut AppState) {
     app_state.reset_error();
     app_state.is_f1_displayed = false;
     app_state.reset_rename();
+    app_state.reset_create();
 }
 
 fn handle_tab_switching(app_state: &mut AppState) {

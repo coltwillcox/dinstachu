@@ -30,6 +30,8 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
             render_error_popup(f, area, app_state);
         } else if app_state.is_f1_displayed {
             render_help_popup(f, area);
+        } else if app_state.is_f7_displayed {
+            render_create_popup(f, area);
         }
     });
 }
@@ -161,10 +163,10 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F3 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
-		.title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
-		.title_bottom(Line::from(Span::styled(" F7 ", Style::default().fg(COLOR_TITLE))).centered())
-		.title_bottom(Line::from(Span::styled(" F8 ", Style::default().fg(COLOR_TITLE))).centered())
-		.title_bottom(Line::from(Span::styled(" F9 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F7 Create ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F8 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F9 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F10 Quit ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
         .border_style(Style::default().fg(COLOR_BORDER));
@@ -206,6 +208,18 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
     );
     f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 4, horizontal: 2 }));
+}
+
+fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
+    let popup_area = centered_rect(60, 20, area);
+    let popup_block = Block::default()
+        .title(Line::from(Span::styled(" Create ", Style::default().fg(COLOR_TITLE))).centered())
+        .borders(Borders::ALL)
+        .style(Style::default().fg(COLOR_BORDER));
+
+    f.render_widget(Clear::default(), popup_area);
+    f.render_widget(popup_block, popup_area);
+    // TODO
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
