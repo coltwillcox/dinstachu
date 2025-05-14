@@ -93,7 +93,6 @@ fn handle_rename(app_state: &mut AppState) {
         match rename_path(original_path, new_path) {
             // TODO Refresh list
             Ok(_) => println!("Successfully renamed!"),
-            // TODO Display error
             Err(e) => app_state.display_error(e.to_string()),
         }
 
