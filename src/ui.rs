@@ -53,15 +53,15 @@ fn render_path_bar(f: &mut ratatui::Frame<'_>, area: Rect, dir_left: &PathBuf, d
     let length_left = ((total_width as usize).saturating_sub(3)) / 2;
     let length_right = ((total_width as usize).saturating_sub(2)) / 2;
 
-    let path_left = limit_path_string(dir_left, length_left.saturating_sub(7));
-    let path_right = limit_path_string(dir_right, length_right.saturating_sub(7));
+    let path_left = limit_path_string(dir_left, length_left.saturating_sub(8));
+    let path_right = limit_path_string(dir_right, length_right.saturating_sub(8));
 
     let border_line = vec![
-        Span::styled(format!("{}", "├─"), Style::default().fg(COLOR_BORDER)),
+        Span::styled(format!("{}", "├──"), Style::default().fg(COLOR_BORDER)),
         Span::styled(format!(" {} ", path_left), Style::default().fg(COLOR_DIRECTORY)),
-        Span::styled(format!("{}{}", "─".repeat(length_left.saturating_sub(path_left.len().saturating_add(4))), "─┬─"), Style::default().fg(COLOR_BORDER)),
+        Span::styled(format!("{}{}", "─".repeat(length_left.saturating_sub(path_left.len().saturating_add(5))), "─┬──"), Style::default().fg(COLOR_BORDER)),
         Span::styled(format!(" {} ", path_right), Style::default().fg(COLOR_DIRECTORY)),
-        Span::styled(format!("{}{}", "─".repeat(length_right.saturating_sub(path_right.len().saturating_add(4))), "─┤"), Style::default().fg(COLOR_BORDER)),
+        Span::styled(format!("{}{}", "─".repeat(length_right.saturating_sub(path_right.len().saturating_add(5))), "─┤"), Style::default().fg(COLOR_BORDER)),
     ];
 
     f.render_widget(Paragraph::new(Line::from(border_line)), area);
