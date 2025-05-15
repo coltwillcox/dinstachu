@@ -1,70 +1,88 @@
 use crate::app::{AppState, Item};
 use crate::fs_ops::{load_directory_rows, rename_path};
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
 use std::time::Duration;
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     if event::poll(Duration::from_millis(500))? {
-        if let Event::Key(key) = event::read()? {
-            if app_state.is_f2_displayed {
-                match key.code {
-                    KeyCode::Esc => handle_esc(app_state),
-                    KeyCode::F(2) => toggle_rename(app_state),
-                    KeyCode::F(10) => return Ok(false),
-                    KeyCode::Enter => handle_rename(app_state),
-                    KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
-                    KeyCode::Backspace => app_state.delete_char(),
-                    KeyCode::Left => app_state.move_cursor_left(),
-                    KeyCode::Right => app_state.move_cursor_right(),
-                    _ => {}
-                }
-            } else if app_state.is_f7_displayed {
-                // TODO
-                match key.code {
-                    KeyCode::Esc => handle_esc(app_state),
-                    KeyCode::F(7) => toggle_create(app_state),
-                    KeyCode::F(10) => return Ok(false),
-                    _ => {}
-                }
-            } else {
-                match key.code {
-                    KeyCode::Esc => handle_esc(app_state),
-                    KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
-                    KeyCode::F(2) => toggle_rename(app_state),
-                    KeyCode::F(7) => toggle_create(app_state),
-                    KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
-                    KeyCode::Tab => handle_tab_switching(app_state),
-                    KeyCode::Down => handle_move_selection(app_state, |state, len| {
-                        state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
-                    }),
-                    KeyCode::Up => handle_move_selection(app_state, |state, len| {
-                        state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
-                    }),
-                    KeyCode::PageDown => {
-                        let page_size = app_state.page_size as usize;
-                        handle_move_selection(app_state, |state, len| {
-                            state.select(state.selected().map(|selected| (selected + page_size).min(len.saturating_sub(1))));
-                        })
+        match event::read()? {
+            Event::Key(key) => {
+                if app_state.is_f2_displayed {
+                    match key.code {
+                        KeyCode::Esc => handle_esc(app_state),
+                        KeyCode::F(2) => toggle_rename(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        KeyCode::Enter => handle_rename(app_state),
+                        KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
+                        KeyCode::Backspace => app_state.delete_char(),
+                        KeyCode::Left => app_state.move_cursor_left(),
+                        KeyCode::Right => app_state.move_cursor_right(),
+                        _ => {}
                     }
-                    KeyCode::PageUp => {
-                        let page_size = app_state.page_size as usize;
-                        handle_move_selection(app_state, |state, _len| {
-                            state.select(state.selected().map(|selected| selected.saturating_sub(page_size)));
-                        })
+                } else if app_state.is_f7_displayed {
+                    // TODO
+                    match key.code {
+                        KeyCode::Esc => handle_esc(app_state),
+                        KeyCode::F(7) => toggle_create(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        _ => {}
                     }
-                    KeyCode::Home => handle_move_selection(app_state, |state, _len| {
-                        state.select(Some(0));
-                    }),
-                    KeyCode::End => handle_move_selection(app_state, |state, len| {
-                        state.select(Some(len.saturating_sub(1)));
-                    }),
-                    KeyCode::Backspace => handle_navigate_up(app_state),
-                    KeyCode::Enter => handle_enter_directory(app_state),
-                    _ => {}
+                } else {
+                    match key.code {
+                        KeyCode::Esc => handle_esc(app_state),
+                        KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
+                        KeyCode::F(2) => toggle_rename(app_state),
+                        KeyCode::F(7) => toggle_create(app_state),
+                        KeyCode::F(10) | KeyCode::Char('q') => return Ok(false), // Temp 'q' debug
+                        KeyCode::Tab => handle_tab_switching(app_state),
+                        KeyCode::Down => handle_move_selection(app_state, |state, len| {
+                            state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                        }),
+                        KeyCode::Up => handle_move_selection(app_state, |state, len| {
+                            state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                        }),
+                        KeyCode::PageDown => {
+                            let page_size = app_state.page_size as usize;
+                            handle_move_selection(app_state, |state, len| {
+                                state.select(state.selected().map(|selected| (selected + page_size).min(len.saturating_sub(1))));
+                            })
+                        }
+                        KeyCode::PageUp => {
+                            let page_size = app_state.page_size as usize;
+                            handle_move_selection(app_state, |state, _len| {
+                                state.select(state.selected().map(|selected| selected.saturating_sub(page_size)));
+                            })
+                        }
+                        KeyCode::Home => handle_move_selection(app_state, |state, _len| {
+                            state.select(Some(0));
+                        }),
+                        KeyCode::End => handle_move_selection(app_state, |state, len| {
+                            state.select(Some(len.saturating_sub(1)));
+                        }),
+                        KeyCode::Backspace => handle_navigate_up(app_state),
+                        KeyCode::Enter => handle_enter_directory(app_state),
+                        _ => {}
+                    }
                 }
             }
+            Event::Mouse(mouse_event) => match mouse_event.kind {
+                MouseEventKind::Down(btn) => {
+                    // TODO Select row in table
+                    app_state.is_left_active = !app_state.is_left_active;
+                }
+                MouseEventKind::ScrollDown => handle_move_selection(app_state, |state, len| {
+                    state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                }),
+                MouseEventKind::ScrollUp => handle_move_selection(app_state, |state, len| {
+                    state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                }),
+                MouseEventKind::ScrollLeft => app_state.is_left_active = true,
+                MouseEventKind::ScrollRight => app_state.is_left_active = false,
+                _ => (),
+            },
+            _ => (),
         }
     }
     Ok(true)

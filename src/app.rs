@@ -18,8 +18,8 @@ pub struct AppState {
     pub error_message: String,
     pub rename_input: String,
     pub rename_character_index: usize,
-	pub create_input: String,
-	pub create_character_index: usize, 
+    pub create_input: String,
+    pub create_character_index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -66,8 +66,8 @@ impl AppState {
             error_message,
             rename_input: String::new(),
             rename_character_index: 0,
-			create_input: String::new(),
-			create_character_index: 0,
+            create_input: String::new(),
+            create_character_index: 0,
         }
     }
 
