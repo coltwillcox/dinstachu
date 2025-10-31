@@ -128,8 +128,10 @@ fn handle_rename(app_state: &mut AppState) {
                     Ok(items) => {
                         if app_state.is_left_active {
                             app_state.children_left = items;
+                            app_state.rows_dirty_left = true;
                         } else {
                             app_state.children_right = items;
+                            app_state.rows_dirty_right = true;
                         }
                     }
                     Err(e) => app_state.display_error(e.to_string()),
@@ -206,6 +208,11 @@ fn navigate_up_panel(app_state: &mut AppState) {
 
             *dir = dir_new;
             *children = children_new;
+            if app_state.is_left_active {
+                app_state.rows_dirty_left = true;
+            } else {
+                app_state.rows_dirty_right = true;
+            }
             let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
             state.select(Some(selected_new));
         }
@@ -252,6 +259,11 @@ fn enter_directory_panel(app_state: &mut AppState) {
 
                 *dir = dir_new;
                 *children_mut = children_new;
+                if app_state.is_left_active {
+                    app_state.rows_dirty_left = true;
+                } else {
+                    app_state.rows_dirty_right = true;
+                }
                 let selected_new = children_mut.iter().position(|item| Some(&item.name) == current_dir_name.as_ref()).unwrap_or(0);
                 state.select(Some(selected_new));
             }
@@ -267,6 +279,11 @@ fn enter_directory_panel(app_state: &mut AppState) {
 
                 *dir = dir_new;
                 *children = children_new;
+                if app_state.is_left_active {
+                    app_state.rows_dirty_left = true;
+                } else {
+                    app_state.rows_dirty_right = true;
+                }
                 state.select(Some(0));
             }
             Err(e) => app_state.display_error(e.to_string()),

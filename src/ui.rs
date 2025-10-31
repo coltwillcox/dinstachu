@@ -92,8 +92,13 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
             .add_modifier(Modifier::BOLD)
     };
 
-    let rows_left = children_to_rows(app_state, true);
-    let table_left = Table::new(rows_left.to_vec(), widths.clone())
+    // Only rebuild rows if dirty (directory changed or entering rename mode)
+    if app_state.rows_dirty_left || app_state.is_f2_displayed {
+        app_state.cached_rows_left = children_to_rows(app_state, true);
+        app_state.rows_dirty_left = false;
+    }
+
+    let table_left = Table::new(app_state.cached_rows_left.clone(), widths.clone())
         .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(app_state.is_left_active))
@@ -109,8 +114,13 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     let separator_vertical = Paragraph::new(Text::raw(&app_state.cached_separator)).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
 
-    let rows_right = children_to_rows(app_state, false);
-    let table_right = Table::new(rows_right.to_vec(), widths)
+    // Only rebuild rows if dirty (directory changed or entering rename mode)
+    if app_state.rows_dirty_right || app_state.is_f2_displayed {
+        app_state.cached_rows_right = children_to_rows(app_state, false);
+        app_state.rows_dirty_right = false;
+    }
+
+    let table_right = Table::new(app_state.cached_rows_right.clone(), widths)
         .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(!app_state.is_left_active))
