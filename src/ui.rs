@@ -13,6 +13,12 @@ use ratatui::{
 use std::path::PathBuf;
 
 pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppState) {
+    // Update cached clock
+    let current_time = Local::now().format(" %H:%M:%S ").to_string();
+    if app_state.cached_clock != current_time {
+        app_state.cached_clock = current_time;
+    }
+
     let _ = terminal.draw(|f| {
         let area = f.area();
         let chunks_main = Layout::default()
@@ -20,7 +26,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
             .constraints([Constraint::Length(3), Constraint::Length(1), Constraint::Percentage(100), Constraint::Length(1), Constraint::Length(3)])
             .split(area);
 
-        render_top_panel(f, chunks_main[0]);
+        render_top_panel(f, chunks_main[0], &app_state.cached_clock);
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
         app_state.page_size = render_file_tables(f, chunks_main[2], app_state);
         render_bottom_panel(f, chunks_main[3], area.width);
@@ -36,10 +42,10 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
     });
 }
 
-fn render_top_panel(f: &mut ratatui::Frame<'_>, area: Rect) {
+fn render_top_panel(f: &mut ratatui::Frame<'_>, area: Rect, cached_clock: &str) {
     let logo = Span::styled(format!(" {} ", ICON_LOGO), Style::default().fg(COLOR_TITLE));
     let title = Span::styled(format!(" {} v{} ", TITLE, VERSION), Style::default().fg(COLOR_TITLE));
-    let clock = Span::styled(Local::now().format(" %H:%M:%S ").to_string(), Style::default().fg(COLOR_TITLE));
+    let clock = Span::styled(cached_clock, Style::default().fg(COLOR_TITLE));
 
     let block_top = Block::default()
         .title_top(Line::from(logo).left_aligned())
@@ -94,7 +100,13 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
         .column_spacing(1);
     f.render_stateful_widget(table_left, chunks[0], &mut app_state.state_left);
 
-    let separator_vertical = Paragraph::new(Text::raw("│\n".repeat((chunks[0].height - 1) as usize) + "│")).style(Style::default().fg(COLOR_BORDER));
+    // Cache the separator string based on height
+    let separator_height = chunks[0].height;
+    if app_state.cached_separator_height != separator_height {
+        app_state.cached_separator_height = separator_height;
+        app_state.cached_separator = "│\n".repeat((separator_height - 1) as usize) + "│";
+    }
+    let separator_vertical = Paragraph::new(Text::raw(&app_state.cached_separator)).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
 
     let rows_right = children_to_rows(app_state, false);
@@ -111,17 +123,28 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 fn children_to_rows<'a>(app_state: &mut AppState, is_left: bool) -> Vec<Row<'static>> {
     let mut rows = Vec::<Row<'static>>::new();
 
-    let children = if is_left { &app_state.children_left.clone() } else { &app_state.children_right.clone() };
-
     let is_renaming_current_side = app_state.is_f2_displayed && (app_state.is_left_active == is_left);
     let selected_index = if is_left { app_state.state_left.selected().unwrap() } else { app_state.state_right.selected().unwrap() };
+
+    // Get the rename input once before borrowing children to avoid borrowing conflicts
+    let rename_input = if is_renaming_current_side {
+        Some(app_state.get_rename_input())
+    } else {
+        None
+    };
+
+    let children = if is_left { &app_state.children_left } else { &app_state.children_right };
 
     for (index, child) in children.iter().enumerate() {
         let is_renaming_current_item = is_renaming_current_side && (index == selected_index);
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
 
-        let name = if is_renaming_current_item { app_state.get_rename_input() } else { child.name.clone() };
+        let name = if is_renaming_current_item {
+            rename_input.as_ref().unwrap().clone()
+        } else {
+            child.name.clone()
+        };
         let extension = if is_renaming_current_item { String::new() } else { child.extension.clone() };
 
         rows.push(Row::new(vec![

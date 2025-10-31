@@ -6,7 +6,7 @@ use std::io::Result;
 use std::time::Duration;
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
-    if event::poll(Duration::from_millis(500))? {
+    if event::poll(Duration::from_millis(100))? {
         match event::read()? {
             Event::Key(key) => {
                 if app_state.is_f2_displayed {
@@ -93,11 +93,11 @@ fn toggle_rename(app_state: &mut AppState) {
     if app_state.is_f2_displayed {
         let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap() } else { app_state.state_right.selected().unwrap() };
         let selected_item = if app_state.is_left_active {
-            app_state.children_left[selected_index].clone()
+            &app_state.children_left[selected_index]
         } else {
-            app_state.children_right[selected_index].clone()
+            &app_state.children_right[selected_index]
         };
-        app_state.rename_input = selected_item.name_full;
+        app_state.rename_input = selected_item.name_full.clone();
         app_state.move_cursor_end();
     } else {
         app_state.reset_rename();
@@ -122,12 +122,16 @@ fn handle_rename(app_state: &mut AppState) {
 
         match rename_path(original_path, new_path) {
             Ok(_) => {
-                match load_directory_rows(&app_state, &app_state.dir_left) {
-                    Ok(items) => app_state.children_left = items,
-                    Err(e) => app_state.display_error(e.to_string()),
-                }
-                match load_directory_rows(&app_state, &app_state.dir_right) {
-                    Ok(items) => app_state.children_right = items,
+                // Only reload the active panel
+                let current_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+                match load_directory_rows(&app_state, current_dir) {
+                    Ok(items) => {
+                        if app_state.is_left_active {
+                            app_state.children_left = items;
+                        } else {
+                            app_state.children_right = items;
+                        }
+                    }
                     Err(e) => app_state.display_error(e.to_string()),
                 }
             }

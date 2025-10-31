@@ -20,6 +20,9 @@ pub struct AppState {
     pub rename_character_index: usize,
     pub create_input: String,
     pub create_character_index: usize,
+    pub cached_clock: String,
+    pub cached_separator_height: u16,
+    pub cached_separator: String,
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +71,9 @@ impl AppState {
             rename_character_index: 0,
             create_input: String::new(),
             create_character_index: 0,
+            cached_clock: String::new(),
+            cached_separator_height: 0,
+            cached_separator: String::new(),
         }
     }
 
