@@ -40,6 +40,19 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::Right => app_state.create_move_cursor_right(),
                         _ => {}
                     }
+                } else if app_state.is_f3_displayed {
+                    match key.code {
+                        KeyCode::Esc => handle_esc(app_state),
+                        KeyCode::F(3) => app_state.close_viewer(),
+                        KeyCode::F(10) => return Ok(false),
+                        KeyCode::Down => app_state.viewer_scroll_down(),
+                        KeyCode::Up => app_state.viewer_scroll_up(),
+                        KeyCode::PageDown => app_state.viewer_page_down(),
+                        KeyCode::PageUp => app_state.viewer_page_up(),
+                        KeyCode::Home => app_state.viewer_home(),
+                        KeyCode::End => app_state.viewer_end(),
+                        _ => {}
+                    }
                 } else {
                     match key.code {
                         KeyCode::Esc => {
@@ -48,6 +61,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         }
                         KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                         KeyCode::F(2) => toggle_rename(app_state),
+                        KeyCode::F(3) => handle_f3_view(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
                         KeyCode::F(8) => toggle_delete(app_state),
                         KeyCode::F(10) => return Ok(false),
@@ -190,6 +204,7 @@ fn handle_esc(app_state: &mut AppState) {
     app_state.reset_rename();
     app_state.reset_create();
     app_state.reset_delete();
+    app_state.close_viewer();
 }
 
 fn handle_tab_switching(app_state: &mut AppState) {
@@ -428,5 +443,45 @@ fn handle_create_confirm(app_state: &mut AppState) {
     }
 
     app_state.reset_create();
+}
+
+fn handle_f3_view(app_state: &mut AppState) {
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
+
+    // Get selected item from active panel
+    let state = if app_state.is_left_active {
+        &app_state.state_left
+    } else {
+        &app_state.state_right
+    };
+    let children = if app_state.is_left_active {
+        &app_state.children_left
+    } else {
+        &app_state.children_right
+    };
+    let selected_item = state.selected().and_then(|index| children.get(index));
+
+    if let Some(item) = selected_item {
+        // Don't open directories or parent entry
+        if item.is_dir {
+            return;
+        }
+
+        // Build file path
+        let parent_path = if app_state.is_left_active {
+            &app_state.dir_left
+        } else {
+            &app_state.dir_right
+        };
+        let mut file_path = parent_path.clone();
+        file_path.push(&item.name_full);
+
+        // Open viewer
+        if let Err(e) = app_state.open_viewer(file_path) {
+            app_state.display_error(e);
+        }
+    }
 }
 

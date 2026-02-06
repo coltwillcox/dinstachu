@@ -28,7 +28,11 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
 
         render_top_panel(f, chunks_main[0], &app_state.cached_clock);
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
-        app_state.page_size = render_file_tables(f, chunks_main[2], app_state);
+        if app_state.is_f3_displayed {
+            app_state.viewer_viewport_height = render_viewer(f, chunks_main[2], app_state);
+        } else {
+            app_state.page_size = render_file_tables(f, chunks_main[2], app_state);
+        }
         render_bottom_panel(f, chunks_main[3], app_state);
         render_fkey_bar(f, chunks_main[4]);
 
@@ -207,22 +211,131 @@ fn make_header_row() -> Row<'static> {
     ])
 }
 
+fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -> usize {
+    if let Some(viewer_state) = &app_state.viewer_state {
+        // Calculate line number gutter width
+        let line_num_width = (viewer_state.total_lines.to_string().len() as u16).max(3) + 2;
+
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Length(line_num_width), Constraint::Min(0)])
+            .split(area);
+
+        let viewport_height = area.height as usize;
+        let start = viewer_state.scroll_offset;
+        let end = (start + viewport_height).min(viewer_state.total_lines);
+
+        // Render line numbers
+        let mut line_numbers = Vec::new();
+        for line_num in start..end {
+            line_numbers.push(Line::from(Span::styled(
+                format!(
+                    "{:>width$} ",
+                    line_num + 1,
+                    width = line_num_width as usize - 1
+                ),
+                Style::default().fg(COLOR_COLUMNS),
+            )));
+        }
+        let line_number_para = Paragraph::new(line_numbers)
+            .style(Style::default().bg(ratatui::style::Color::Black));
+        f.render_widget(line_number_para, chunks[0]);
+
+        // Render content
+        if viewer_state.is_binary {
+            let binary_msg = Paragraph::new("Binary file detected. Press Esc to return.")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(COLOR_TITLE));
+            f.render_widget(binary_msg, chunks[1]);
+        } else {
+            let content_lines: Vec<Line> = if viewer_state.highlighted_lines.is_empty() {
+                // Fallback to plain text
+                viewer_state.content_lines[start..end]
+                    .iter()
+                    .map(|line| Line::from(Span::raw(line.clone())))
+                    .collect()
+            } else {
+                viewer_state.highlighted_lines[start..end]
+                    .iter()
+                    .map(|spans| Line::from(spans.clone()))
+                    .collect()
+            };
+
+            let content_para =
+                Paragraph::new(content_lines).style(Style::default().fg(COLOR_FILE));
+            f.render_widget(content_para, chunks[1]);
+        }
+
+        viewport_height
+    } else {
+        0
+    }
+}
+
 fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
-    if !app_state.search_input.is_empty() {
+    if app_state.is_f3_displayed {
+        // Show viewer status
+        if let Some(viewer_state) = &app_state.viewer_state {
+            let filename = viewer_state
+                .file_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown");
+            let current_line = viewer_state.scroll_offset + 1;
+            let total_lines = viewer_state.total_lines;
+            let file_size = format_size(viewer_state.file_size);
+
+            let status_text = format!(
+                " {} | Line {}/{} | {} | {} ",
+                filename, current_line, total_lines, file_size, viewer_state.syntax_name
+            );
+
+            let status_line = vec![
+                Span::styled("├─", Style::default().fg(COLOR_BORDER)),
+                Span::styled(
+                    status_text.clone(),
+                    Style::default()
+                        .fg(COLOR_TITLE)
+                        .bg(COLOR_SELECTED_BACKGROUND),
+                ),
+                Span::styled(
+                    "─".repeat(area.width as usize - status_text.len() - 3),
+                    Style::default().fg(COLOR_BORDER),
+                ),
+                Span::styled("┤", Style::default().fg(COLOR_BORDER)),
+            ];
+            f.render_widget(Paragraph::new(Line::from(status_line)), area);
+        }
+    } else if !app_state.search_input.is_empty() {
         // Show search string
         let search_text = format!("Search: {}", app_state.search_input);
         let search_line = vec![
             Span::styled("├─", Style::default().fg(COLOR_BORDER)),
-            Span::styled(format!(" {} ", search_text), Style::default().fg(COLOR_TITLE).bg(COLOR_SELECTED_BACKGROUND)),
-            Span::styled("─".repeat(area.width as usize - search_text.len() - 5), Style::default().fg(COLOR_BORDER)),
+            Span::styled(
+                format!(" {} ", search_text),
+                Style::default()
+                    .fg(COLOR_TITLE)
+                    .bg(COLOR_SELECTED_BACKGROUND),
+            ),
+            Span::styled(
+                "─".repeat(area.width as usize - search_text.len() - 5),
+                Style::default().fg(COLOR_BORDER),
+            ),
             Span::styled("┤", Style::default().fg(COLOR_BORDER)),
         ];
         f.render_widget(Paragraph::new(Line::from(search_line)), area);
     } else {
         // Show separator
         let total_width = area.width;
-        let separator = format!("├{}┴{}┤", "─".repeat(((total_width as usize).saturating_sub(3)) / 2), "─".repeat(((total_width as usize).saturating_sub(2)) / 2));
-        f.render_widget(Paragraph::new(Text::raw(separator)).style(Style::default().fg(COLOR_BORDER)), area);
+        let separator = format!(
+            "├{}┴{}┤",
+            "─".repeat(((total_width as usize).saturating_sub(3)) / 2),
+            "─".repeat(((total_width as usize).saturating_sub(2)) / 2)
+        );
+        f.render_widget(
+            Paragraph::new(Text::raw(separator)).style(Style::default().fg(COLOR_BORDER)),
+            area,
+        );
     }
 }
 
@@ -230,7 +343,7 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
     let block_bottom = Block::default()
         .title_bottom(Line::from(Span::styled(" F1 Help ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F2 Rename ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F3 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F3 View ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
@@ -278,18 +391,22 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F3 - View file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 7, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 7, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 8, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {

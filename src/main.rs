@@ -4,6 +4,7 @@ mod fs_ops;
 mod input;
 mod ui;
 mod utils;
+mod viewer;
 
 use app::AppState;
 use crossterm::{

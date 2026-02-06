@@ -1,4 +1,5 @@
 use crate::fs_ops::get_current_dir;
+use crate::viewer::ViewerState;
 use ratatui::widgets::TableState;
 use std::path::PathBuf;
 
@@ -27,6 +28,9 @@ pub struct AppState {
     pub cached_clock: String,
     pub cached_separator_height: u16,
     pub cached_separator: String,
+    pub is_f3_displayed: bool,
+    pub viewer_state: Option<ViewerState>,
+    pub viewer_viewport_height: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +86,9 @@ impl AppState {
             cached_clock: String::new(),
             cached_separator_height: 0,
             cached_separator: String::new(),
+            is_f3_displayed: false,
+            viewer_state: None,
+            viewer_viewport_height: 0,
         }
     }
 
@@ -291,5 +298,69 @@ impl AppState {
         self.is_f8_displayed = false;
         self.delete_item_name.clear();
         self.delete_item_is_dir = false;
+    }
+
+    pub fn open_viewer(&mut self, file_path: PathBuf) -> Result<(), String> {
+        use crate::viewer::load_file_content;
+
+        match load_file_content(&file_path) {
+            Ok(mut state) => {
+                // Pre-highlight initial viewport
+                if !state.is_binary && !state.content_lines.is_empty() {
+                    state.highlighted_lines = crate::viewer::highlight_content(
+                        &state.content_lines,
+                        &state.syntax_name,
+                    );
+                }
+                self.viewer_state = Some(state);
+                self.is_f3_displayed = true;
+                Ok(())
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    pub fn close_viewer(&mut self) {
+        self.is_f3_displayed = false;
+        self.viewer_state = None;
+    }
+
+    pub fn viewer_scroll_down(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
+            state.scroll_offset = (state.scroll_offset + 1).min(max_offset);
+        }
+    }
+
+    pub fn viewer_scroll_up(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            state.scroll_offset = state.scroll_offset.saturating_sub(1);
+        }
+    }
+
+    pub fn viewer_page_down(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
+            state.scroll_offset = (state.scroll_offset + self.viewer_viewport_height).min(max_offset);
+        }
+    }
+
+    pub fn viewer_page_up(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            state.scroll_offset = state.scroll_offset.saturating_sub(self.viewer_viewport_height);
+        }
+    }
+
+    pub fn viewer_home(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            state.scroll_offset = 0;
+        }
+    }
+
+    pub fn viewer_end(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
+            state.scroll_offset = max_offset;
+        }
     }
 }
