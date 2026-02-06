@@ -37,7 +37,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
         } else if app_state.is_f1_displayed {
             render_help_popup(f, area);
         } else if app_state.is_f7_displayed {
-            render_create_popup(f, area);
+            render_create_popup(f, area, app_state);
         } else if app_state.is_f8_displayed {
             render_delete_popup(f, area, app_state);
         }
@@ -282,22 +282,38 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 6, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 7, horizontal: 2 }));
 }
 
-fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
+fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
     let popup_area = centered_rect(60, 20, area);
     let popup_block = Block::default()
-        .title(Line::from(Span::styled(" Create ", Style::default().fg(COLOR_TITLE))).centered())
+        .title(Line::from(Span::styled(" Create Directory ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::ALL)
         .style(Style::default().fg(COLOR_BORDER));
 
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
-    // TODO
+
+    // Show input with cursor
+    let input_display = app_state.get_create_input();
+    f.render_widget(
+        Paragraph::new(input_display).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE).bg(COLOR_SELECTED_BACKGROUND)),
+        popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
+    );
+
+    // Instructions
+    f.render_widget(
+        Paragraph::new("Enter - Create    Esc - Cancel").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
+        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
+    );
 }
 
 fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {

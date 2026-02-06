@@ -1,5 +1,5 @@
 use crate::app::{AppState, Item};
-use crate::fs_ops::{delete_path, load_directory_rows, rename_path};
+use crate::fs_ops::{create_directory, delete_path, load_directory_rows, rename_path};
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
@@ -29,11 +29,15 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         _ => {}
                     }
                 } else if app_state.is_f7_displayed {
-                    // TODO
                     match key.code {
                         KeyCode::Esc => handle_esc(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
                         KeyCode::F(10) => return Ok(false),
+                        KeyCode::Enter => handle_create_confirm(app_state),
+                        KeyCode::Char(to_insert) => app_state.create_enter_char(to_insert),
+                        KeyCode::Backspace => app_state.create_delete_char(),
+                        KeyCode::Left => app_state.create_move_cursor_left(),
+                        KeyCode::Right => app_state.create_move_cursor_right(),
                         _ => {}
                     }
                 } else {
@@ -139,6 +143,11 @@ fn toggle_rename(app_state: &mut AppState) {
 
 fn toggle_create(app_state: &mut AppState) {
     app_state.is_f7_displayed = !app_state.is_f7_displayed;
+    if app_state.is_f7_displayed {
+        // Opening dialog - clear input fields only
+        app_state.create_input.clear();
+        app_state.create_character_index = 0;
+    }
 }
 
 fn handle_rename(app_state: &mut AppState) {
@@ -379,5 +388,45 @@ fn handle_delete_confirm(app_state: &mut AppState) {
     }
 
     app_state.reset_delete();
+}
+
+fn handle_create_confirm(app_state: &mut AppState) {
+    if app_state.create_input.is_empty() {
+        app_state.reset_create();
+        return;
+    }
+
+    let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+
+    let mut new_dir_path = parent_path.clone();
+    new_dir_path.push(&app_state.create_input);
+
+    match create_directory(new_dir_path) {
+        Ok(_) => {
+            // Reload the directory
+            let current_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+
+            match load_directory_rows(current_dir) {
+                Ok(items) => {
+                    if app_state.is_left_active {
+                        app_state.children_left = items;
+                        // Select the newly created directory
+                        if let Some(index) = app_state.children_left.iter().position(|item| item.name == app_state.create_input) {
+                            app_state.state_left.select(Some(index));
+                        }
+                    } else {
+                        app_state.children_right = items;
+                        if let Some(index) = app_state.children_right.iter().position(|item| item.name == app_state.create_input) {
+                            app_state.state_right.select(Some(index));
+                        }
+                    }
+                }
+                Err(e) => app_state.display_error(e.to_string()),
+            }
+        }
+        Err(e) => app_state.display_error(e.to_string()),
+    }
+
+    app_state.reset_create();
 }
 

@@ -148,6 +148,49 @@ impl AppState {
 
     pub fn reset_create(&mut self) {
         self.is_f7_displayed = false;
+        self.create_input.clear();
+        self.create_character_index = 0;
+    }
+
+    pub fn create_move_cursor_left(&mut self) {
+        let cursor_moved_left = self.create_character_index.saturating_sub(1);
+        self.create_character_index = self.create_clamp_cursor(cursor_moved_left);
+    }
+
+    pub fn create_move_cursor_right(&mut self) {
+        let cursor_moved_right = self.create_character_index.saturating_add(1);
+        self.create_character_index = self.create_clamp_cursor(cursor_moved_right);
+    }
+
+    pub fn create_enter_char(&mut self, new_char: char) {
+        let index = self.create_byte_index();
+        self.create_input.insert(index, new_char);
+        self.create_move_cursor_right();
+    }
+
+    pub fn create_clamp_cursor(&self, new_cursor_pos: usize) -> usize {
+        new_cursor_pos.clamp(0, self.create_input.chars().count())
+    }
+
+    pub fn create_byte_index(&self) -> usize {
+        self.create_input.char_indices().map(|(i, _)| i).nth(self.create_character_index).unwrap_or(self.create_input.len())
+    }
+
+    pub fn create_delete_char(&mut self) {
+        let is_not_cursor_leftmost = self.create_character_index != 0;
+        if is_not_cursor_leftmost {
+            let current_index = self.create_character_index;
+            let from_left_to_current_index = current_index - 1;
+            let before_char_to_delete = self.create_input.chars().take(from_left_to_current_index);
+            let after_char_to_delete = self.create_input.chars().skip(current_index);
+            self.create_input = before_char_to_delete.chain(after_char_to_delete).collect();
+            self.create_move_cursor_left();
+        }
+    }
+
+    pub fn get_create_input(&self) -> String {
+        let (p1, p2) = self.create_input.split_at(self.create_character_index);
+        format!("{}_{}",  p1, p2)
     }
 
     pub fn get_rename_input(&mut self) -> String {

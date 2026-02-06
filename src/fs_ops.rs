@@ -1,7 +1,7 @@
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
-use std::fs::{DirEntry, read_dir, remove_dir_all, remove_file, rename};
+use std::fs::{DirEntry, create_dir, read_dir, remove_dir_all, remove_file, rename};
 use std::io::Error;
 use std::path::PathBuf;
 
@@ -94,5 +94,10 @@ pub fn delete_path(path: PathBuf, is_dir: bool) -> Result<(), Error> {
     } else {
         remove_file(path)?;
     }
+    Ok(())
+}
+
+pub fn create_directory(path: PathBuf) -> Result<(), Error> {
+    create_dir(path)?;
     Ok(())
 }
