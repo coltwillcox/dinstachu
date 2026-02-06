@@ -1,7 +1,7 @@
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
-use std::fs::{DirEntry, read_dir, rename};
+use std::fs::{DirEntry, read_dir, remove_dir_all, remove_file, rename};
 use std::io::Error;
 use std::path::PathBuf;
 
@@ -85,5 +85,14 @@ pub fn get_current_dir() -> Result<PathBuf, std::io::Error> {
 
 pub fn rename_path(original_path: PathBuf, new_path: PathBuf) -> Result<(), Error> {
     rename(original_path, new_path)?;
+    Ok(())
+}
+
+pub fn delete_path(path: PathBuf, is_dir: bool) -> Result<(), Error> {
+    if is_dir {
+        remove_dir_all(path)?;
+    } else {
+        remove_file(path)?;
+    }
     Ok(())
 }

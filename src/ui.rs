@@ -38,6 +38,8 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
             render_help_popup(f, area);
         } else if app_state.is_f7_displayed {
             render_create_popup(f, area);
+        } else if app_state.is_f8_displayed {
+            render_delete_popup(f, area, app_state);
         }
     });
 }
@@ -233,7 +235,7 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F7 Create ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F8 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F8 Delete ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F9 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F10 Quit ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
@@ -279,7 +281,11 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 5, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 6, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
@@ -292,6 +298,31 @@ fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
     // TODO
+}
+
+fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
+    let popup_area = centered_rect(60, 30, area);
+
+    let item_type = if app_state.delete_item_is_dir { "directory" } else { "file" };
+    let title = format!(" Delete {} ", item_type);
+
+    let popup_block = Block::default()
+        .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
+        .borders(Borders::ALL)
+        .style(Style::default().fg(COLOR_BORDER));
+
+    f.render_widget(Clear::default(), popup_area);
+    f.render_widget(popup_block, popup_area);
+
+    // Message
+    let message = format!("Delete \"{}\"?", app_state.delete_item_name);
+    f.render_widget(Paragraph::new(message).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 3, horizontal: 2 }));
+
+    // Instructions
+    f.render_widget(
+        Paragraph::new("Y / Enter - Yes    N / Esc - No").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
+        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
+    );
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {

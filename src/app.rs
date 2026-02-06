@@ -20,6 +20,9 @@ pub struct AppState {
     pub rename_character_index: usize,
     pub create_input: String,
     pub create_character_index: usize,
+    pub is_f8_displayed: bool,
+    pub delete_item_name: String,
+    pub delete_item_is_dir: bool,
     pub search_input: String,
     pub cached_clock: String,
     pub cached_separator_height: u16,
@@ -72,6 +75,9 @@ impl AppState {
             rename_character_index: 0,
             create_input: String::new(),
             create_character_index: 0,
+            is_f8_displayed: false,
+            delete_item_name: String::new(),
+            delete_item_is_dir: false,
             search_input: String::new(),
             cached_clock: String::new(),
             cached_separator_height: 0,
@@ -236,5 +242,11 @@ impl AppState {
                 return;
             }
         }
+    }
+
+    pub fn reset_delete(&mut self) {
+        self.is_f8_displayed = false;
+        self.delete_item_name.clear();
+        self.delete_item_is_dir = false;
     }
 }

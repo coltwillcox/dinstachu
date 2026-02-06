@@ -1,5 +1,5 @@
 use crate::app::{AppState, Item};
-use crate::fs_ops::{load_directory_rows, rename_path};
+use crate::fs_ops::{delete_path, load_directory_rows, rename_path};
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
@@ -21,6 +21,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::Right => app_state.move_cursor_right(),
                         _ => {}
                     }
+                } else if app_state.is_f8_displayed {
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => handle_esc(app_state),
+                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => handle_delete_confirm(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        _ => {}
+                    }
                 } else if app_state.is_f7_displayed {
                     // TODO
                     match key.code {
@@ -38,6 +45,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
                         KeyCode::F(2) => toggle_rename(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
+                        KeyCode::F(8) => toggle_delete(app_state),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Char('q') => return Ok(false), // Temp debug
                         KeyCode::Char(c) if c.is_alphanumeric() || c.is_whitespace() || ".-_".contains(c) => {
@@ -172,6 +180,7 @@ fn handle_esc(app_state: &mut AppState) {
     app_state.is_f1_displayed = false;
     app_state.reset_rename();
     app_state.reset_create();
+    app_state.reset_delete();
 }
 
 fn handle_tab_switching(app_state: &mut AppState) {
@@ -300,5 +309,75 @@ fn enter_directory_panel(app_state: &mut AppState) {
             Err(e) => app_state.display_error(e.to_string()),
         }
     }
+}
+
+fn toggle_delete(app_state: &mut AppState) {
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
+
+    app_state.is_f8_displayed = !app_state.is_f8_displayed;
+
+    if app_state.is_f8_displayed {
+        let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap_or(0) } else { app_state.state_right.selected().unwrap_or(0) };
+
+        let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+
+        if selected_index < children.len() {
+            let item = &children[selected_index];
+            // Don't allow deleting ".." parent directory entry
+            if item.name == ".." {
+                app_state.is_f8_displayed = false;
+                return;
+            }
+            app_state.delete_item_name = item.name_full.clone();
+            app_state.delete_item_is_dir = item.is_dir;
+        } else {
+            app_state.is_f8_displayed = false;
+        }
+    } else {
+        app_state.reset_delete();
+    }
+}
+
+fn handle_delete_confirm(app_state: &mut AppState) {
+    let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+
+    let mut item_path = parent_path.clone();
+    item_path.push(&app_state.delete_item_name);
+
+    match delete_path(item_path, app_state.delete_item_is_dir) {
+        Ok(_) => {
+            // Reload the directory
+            let current_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+
+            match load_directory_rows(current_dir) {
+                Ok(items) => {
+                    if app_state.is_left_active {
+                        app_state.children_left = items;
+                        // Adjust selection if needed
+                        let len = app_state.children_left.len();
+                        if let Some(selected) = app_state.state_left.selected() {
+                            if selected >= len {
+                                app_state.state_left.select(Some(len.saturating_sub(1)));
+                            }
+                        }
+                    } else {
+                        app_state.children_right = items;
+                        let len = app_state.children_right.len();
+                        if let Some(selected) = app_state.state_right.selected() {
+                            if selected >= len {
+                                app_state.state_right.select(Some(len.saturating_sub(1)));
+                            }
+                        }
+                    }
+                }
+                Err(e) => app_state.display_error(e.to_string()),
+            }
+        }
+        Err(e) => app_state.display_error(e.to_string()),
+    }
+
+    app_state.reset_delete();
 }
 
