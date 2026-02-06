@@ -23,10 +23,6 @@ pub struct AppState {
     pub cached_clock: String,
     pub cached_separator_height: u16,
     pub cached_separator: String,
-    pub cached_rows_left: Vec<ratatui::widgets::Row<'static>>,
-    pub cached_rows_right: Vec<ratatui::widgets::Row<'static>>,
-    pub rows_dirty_left: bool,
-    pub rows_dirty_right: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -64,7 +60,7 @@ impl AppState {
             is_f7_displayed: false,
             is_left_active: true,
             dir_left: dir_root.clone(),
-            dir_right: dir_root.clone(),
+			dir_right: dir_root.clone(),
             page_size: 0,
             state_left,
             state_right,
@@ -78,10 +74,6 @@ impl AppState {
             cached_clock: String::new(),
             cached_separator_height: 0,
             cached_separator: String::new(),
-            cached_rows_left: Vec::new(),
-            cached_rows_right: Vec::new(),
-            rows_dirty_left: true,
-            rows_dirty_right: true,
         }
     }
 

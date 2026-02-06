@@ -26,18 +26,12 @@ fn main() -> Result<()> {
 
     let mut app_state: AppState = AppState::new();
 
-    match load_directory_rows(&app_state, &app_state.dir_left) {
-        Ok(items) => {
-            app_state.children_left = items;
-            app_state.rows_dirty_left = true;
-        }
+    match load_directory_rows(&app_state.dir_left) {
+        Ok(items) => app_state.children_left = items,
         Err(e) => app_state.display_error(e.to_string()),
     }
-    match load_directory_rows(&app_state, &app_state.dir_right) {
-        Ok(items) => {
-            app_state.children_right = items;
-            app_state.rows_dirty_right = true;
-        }
+    match load_directory_rows(&app_state.dir_right) {
+        Ok(items) => app_state.children_right = items,
         Err(e) => app_state.display_error(e.to_string()),
     }
 

@@ -1,4 +1,3 @@
-use crate::app::AppState;
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
@@ -6,7 +5,7 @@ use std::fs::{DirEntry, read_dir, rename};
 use std::io::Error;
 use std::path::PathBuf;
 
-pub fn load_directory_rows<'a>(app_state: &AppState, path: &PathBuf) -> Result<(Vec<Item>), Error> {
+pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
     let mut entries: Vec<DirEntry>;
     let entries_result = read_dir(path);
 

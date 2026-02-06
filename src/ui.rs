@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
 };
 use std::path::PathBuf;
 
@@ -80,7 +80,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 
     let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
 
-	let is_f2_displayed = app_state.is_f2_displayed;
+    let is_f2_displayed = app_state.is_f2_displayed;
     let table_style = |active: bool| {
         Style::default()
             .bg(if active {
@@ -92,18 +92,27 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
             .add_modifier(Modifier::BOLD)
     };
 
-    // Only rebuild rows if dirty (directory changed or entering rename mode)
-    if app_state.rows_dirty_left || app_state.is_f2_displayed {
-        app_state.cached_rows_left = children_to_rows(app_state, true);
-        app_state.rows_dirty_left = false;
-    }
+    // Viewport height (subtract 1 for header row)
+    let viewport_height = chunks[0].height.saturating_sub(1) as usize;
 
-    let table_left = Table::new(app_state.cached_rows_left.clone(), widths.clone())
+    // Get rename input once if in rename mode
+    let rename_input = if app_state.is_f2_displayed {
+        Some(app_state.get_rename_input())
+    } else {
+        None
+    };
+
+    // Build only visible rows for left panel
+    let (rows_left, offset_left) = build_viewport_rows(app_state, true, viewport_height, rename_input.as_deref());
+    let mut state_left_view = TableState::default();
+    state_left_view.select(app_state.state_left.selected().map(|s| s.saturating_sub(offset_left)));
+
+    let table_left = Table::new(rows_left, widths.clone())
         .block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(app_state.is_left_active))
         .column_spacing(1);
-    f.render_stateful_widget(table_left, chunks[0], &mut app_state.state_left);
+    f.render_stateful_widget(table_left, chunks[0], &mut state_left_view);
 
     // Cache the separator string based on height
     let separator_height = chunks[0].height;
@@ -114,44 +123,55 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     let separator_vertical = Paragraph::new(Text::raw(&app_state.cached_separator)).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
 
-    // Only rebuild rows if dirty (directory changed or entering rename mode)
-    if app_state.rows_dirty_right || app_state.is_f2_displayed {
-        app_state.cached_rows_right = children_to_rows(app_state, false);
-        app_state.rows_dirty_right = false;
-    }
+    // Build only visible rows for right panel
+    let (rows_right, offset_right) = build_viewport_rows(app_state, false, viewport_height, rename_input.as_deref());
+    let mut state_right_view = TableState::default();
+    state_right_view.select(app_state.state_right.selected().map(|s| s.saturating_sub(offset_right)));
 
-    let table_right = Table::new(app_state.cached_rows_right.clone(), widths)
+    let table_right = Table::new(rows_right, widths)
         .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(COLOR_BORDER)))
         .header(make_header_row())
         .row_highlight_style(table_style(!app_state.is_left_active))
         .column_spacing(1);
-    f.render_stateful_widget(table_right, chunks[2], &mut app_state.state_right);
+    f.render_stateful_widget(table_right, chunks[2], &mut state_right_view);
 
     chunks[0].height
 }
 
-fn children_to_rows<'a>(app_state: &mut AppState, is_left: bool) -> Vec<Row<'static>> {
-    let mut rows = Vec::<Row<'static>>::new();
+/// Build only the rows visible in the viewport, returns (rows, start_offset)
+fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usize, rename_input: Option<&str>) -> (Vec<Row<'static>>, usize) {
+    let children = if is_left { &app_state.children_left } else { &app_state.children_right };
+    let state = if is_left { &app_state.state_left } else { &app_state.state_right };
+    let selected = state.selected().unwrap_or(0);
+    let total = children.len();
+
+    if total == 0 {
+        return (Vec::new(), 0);
+    }
+
+    // Calculate viewport window centered on selection
+    let half_view = viewport_height / 2;
+    let start = if selected <= half_view {
+        0
+    } else if selected + half_view >= total {
+        total.saturating_sub(viewport_height)
+    } else {
+        selected.saturating_sub(half_view)
+    };
+    let end = (start + viewport_height).min(total);
 
     let is_renaming_current_side = app_state.is_f2_displayed && (app_state.is_left_active == is_left);
-    let selected_index = if is_left { app_state.state_left.selected().unwrap() } else { app_state.state_right.selected().unwrap() };
 
-    // Get the rename input once before borrowing children to avoid borrowing conflicts
-    let rename_input = if is_renaming_current_side {
-        Some(app_state.get_rename_input())
-    } else {
-        None
-    };
+    let mut rows = Vec::with_capacity(end - start);
 
-    let children = if is_left { &app_state.children_left } else { &app_state.children_right };
-
-    for (index, child) in children.iter().enumerate() {
-        let is_renaming_current_item = is_renaming_current_side && (index == selected_index);
+    for index in start..end {
+        let child = &children[index];
+        let is_renaming_current_item = is_renaming_current_side && (index == selected);
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
 
         let name = if is_renaming_current_item {
-            rename_input.as_ref().unwrap().clone()
+            rename_input.unwrap().to_string()
         } else {
             child.name.clone()
         };
@@ -171,7 +191,7 @@ fn children_to_rows<'a>(app_state: &mut AppState, is_left: bool) -> Vec<Row<'sta
         ]));
     }
 
-    return rows;
+    (rows, start)
 }
 
 fn make_header_row() -> Row<'static> {
