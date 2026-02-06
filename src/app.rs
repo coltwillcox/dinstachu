@@ -20,6 +20,7 @@ pub struct AppState {
     pub rename_character_index: usize,
     pub create_input: String,
     pub create_character_index: usize,
+    pub search_input: String,
     pub cached_clock: String,
     pub cached_separator_height: u16,
     pub cached_separator: String,
@@ -71,6 +72,7 @@ impl AppState {
             rename_character_index: 0,
             create_input: String::new(),
             create_character_index: 0,
+            search_input: String::new(),
             cached_clock: String::new(),
             cached_separator_height: 0,
             cached_separator: String::new(),
@@ -145,5 +147,94 @@ impl AppState {
     pub fn get_rename_input(&mut self) -> String {
         let (p1, p2) = self.rename_input.split_at(self.rename_character_index);
         return format!("{}{}{}", p1, "_", p2);
+    }
+
+    // Quick search methods
+    pub fn search_add_char(&mut self, c: char) {
+        self.search_input.push(c);
+        self.jump_to_first_match();
+    }
+
+    pub fn search_backspace(&mut self) {
+        if !self.search_input.is_empty() {
+            self.search_input.pop();
+            if self.search_input.is_empty() {
+                // Search cleared, do nothing
+            } else {
+                self.jump_to_first_match();
+            }
+        }
+    }
+
+    pub fn search_clear(&mut self) {
+        self.search_input.clear();
+    }
+
+    pub fn jump_to_first_match(&mut self) {
+        if self.search_input.is_empty() {
+            return;
+        }
+
+        let search_lower = self.search_input.to_lowercase();
+        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
+        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
+
+        if let Some(index) = children.iter().position(|item| item.name_full.to_lowercase().starts_with(&search_lower)) {
+            state.select(Some(index));
+        }
+    }
+
+    pub fn jump_to_next_match(&mut self) {
+        if self.search_input.is_empty() {
+            return;
+        }
+
+        let search_lower = self.search_input.to_lowercase();
+        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
+        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
+        let current_index = state.selected().unwrap_or(0);
+
+        // Find next match after current position
+        for i in (current_index + 1)..children.len() {
+            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
+                state.select(Some(i));
+                return;
+            }
+        }
+
+        // Wrap around to beginning
+        for i in 0..=current_index {
+            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
+                state.select(Some(i));
+                return;
+            }
+        }
+    }
+
+    pub fn jump_to_prev_match(&mut self) {
+        if self.search_input.is_empty() {
+            return;
+        }
+
+        let search_lower = self.search_input.to_lowercase();
+        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
+        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
+        let current_index = state.selected().unwrap_or(0);
+
+        // Find previous match before current position
+        for i in (0..current_index).rev() {
+            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
+                state.select(Some(i));
+                return;
+            }
+        }
+
+        // Wrap around to end
+        for i in (current_index..children.len()).rev() {
+            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
+                state.select(Some(i));
+                return;
+            }
+        }
     }
 }

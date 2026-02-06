@@ -29,7 +29,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
         render_top_panel(f, chunks_main[0], &app_state.cached_clock);
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
         app_state.page_size = render_file_tables(f, chunks_main[2], app_state);
-        render_bottom_panel(f, chunks_main[3], area.width);
+        render_bottom_panel(f, chunks_main[3], app_state);
         render_fkey_bar(f, chunks_main[4]);
 
         if app_state.is_error_displayed {
@@ -205,9 +205,23 @@ fn make_header_row() -> Row<'static> {
     ])
 }
 
-fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, total_width: u16) {
-    let separator = format!("├{}┴{}┤", "─".repeat(((total_width as usize).saturating_sub(3)) / 2), "─".repeat(((total_width as usize).saturating_sub(2)) / 2));
-    f.render_widget(Paragraph::new(Text::raw(separator)).style(Style::default().fg(COLOR_BORDER)), area);
+fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
+    if !app_state.search_input.is_empty() {
+        // Show search string
+        let search_text = format!("Search: {}", app_state.search_input);
+        let search_line = vec![
+            Span::styled("├─", Style::default().fg(COLOR_BORDER)),
+            Span::styled(format!(" {} ", search_text), Style::default().fg(COLOR_TITLE).bg(COLOR_SELECTED_BACKGROUND)),
+            Span::styled("─".repeat(area.width as usize - search_text.len() - 5), Style::default().fg(COLOR_BORDER)),
+            Span::styled("┤", Style::default().fg(COLOR_BORDER)),
+        ];
+        f.render_widget(Paragraph::new(Line::from(search_line)), area);
+    } else {
+        // Show separator
+        let total_width = area.width;
+        let separator = format!("├{}┴{}┤", "─".repeat(((total_width as usize).saturating_sub(3)) / 2), "─".repeat(((total_width as usize).saturating_sub(2)) / 2));
+        f.render_widget(Paragraph::new(Text::raw(separator)).style(Style::default().fg(COLOR_BORDER)), area);
+    }
 }
 
 fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
@@ -261,7 +275,11 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         Paragraph::new("F2 - Rename folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 4, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 5, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
