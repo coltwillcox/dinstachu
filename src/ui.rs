@@ -299,7 +299,7 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
                         .bg(COLOR_SELECTED_BACKGROUND),
                 ),
                 Span::styled(
-                    "─".repeat(area.width as usize - status_text.len() - 3),
+                    "─".repeat((area.width as usize).saturating_sub(status_text.len()).saturating_sub(3)),
                     Style::default().fg(COLOR_BORDER),
                 ),
                 Span::styled("┤", Style::default().fg(COLOR_BORDER)),
