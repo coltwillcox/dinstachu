@@ -31,6 +31,19 @@ pub struct AppState {
     pub is_f3_displayed: bool,
     pub viewer_state: Option<ViewerState>,
     pub viewer_viewport_height: usize,
+    pub is_f4_displayed: bool,
+    pub editor_state: Option<EditorState>,
+    pub editor_viewport_height: usize,
+}
+
+#[derive(Clone)]
+pub struct EditorState {
+    pub file_path: PathBuf,
+    pub lines: Vec<String>,
+    pub cursor_line: usize,
+    pub cursor_col: usize,
+    pub scroll_offset: usize,
+    pub modified: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -89,6 +102,9 @@ impl AppState {
             is_f3_displayed: false,
             viewer_state: None,
             viewer_viewport_height: 0,
+            is_f4_displayed: false,
+            editor_state: None,
+            editor_viewport_height: 0,
         }
     }
 
@@ -362,5 +378,198 @@ impl AppState {
             let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
             state.scroll_offset = max_offset;
         }
+    }
+
+    pub fn open_editor(&mut self, file_path: PathBuf) -> Result<(), String> {
+        let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+        let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+        let lines = if lines.is_empty() { vec![String::new()] } else { lines };
+
+        self.editor_state = Some(EditorState {
+            file_path,
+            lines,
+            cursor_line: 0,
+            cursor_col: 0,
+            scroll_offset: 0,
+            modified: false,
+        });
+        self.is_f4_displayed = true;
+        Ok(())
+    }
+
+    pub fn close_editor(&mut self) {
+        self.is_f4_displayed = false;
+        self.editor_state = None;
+    }
+
+    pub fn editor_cursor_up(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            if state.cursor_line > 0 {
+                state.cursor_line -= 1;
+                let line_len = state.lines[state.cursor_line].chars().count();
+                state.cursor_col = state.cursor_col.min(line_len);
+                // Adjust scroll if cursor goes above viewport
+                if state.cursor_line < state.scroll_offset {
+                    state.scroll_offset = state.cursor_line;
+                }
+            }
+        }
+    }
+
+    pub fn editor_cursor_down(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            if state.cursor_line < state.lines.len().saturating_sub(1) {
+                state.cursor_line += 1;
+                let line_len = state.lines[state.cursor_line].chars().count();
+                state.cursor_col = state.cursor_col.min(line_len);
+                // Adjust scroll if cursor goes below viewport
+                if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
+                    state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+                }
+            }
+        }
+    }
+
+    pub fn editor_cursor_left(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            if state.cursor_col > 0 {
+                state.cursor_col -= 1;
+            } else if state.cursor_line > 0 {
+                state.cursor_line -= 1;
+                state.cursor_col = state.lines[state.cursor_line].chars().count();
+                if state.cursor_line < state.scroll_offset {
+                    state.scroll_offset = state.cursor_line;
+                }
+            }
+        }
+    }
+
+    pub fn editor_cursor_right(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let line_len = state.lines[state.cursor_line].chars().count();
+            if state.cursor_col < line_len {
+                state.cursor_col += 1;
+            } else if state.cursor_line < state.lines.len().saturating_sub(1) {
+                state.cursor_line += 1;
+                state.cursor_col = 0;
+                if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
+                    state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+                }
+            }
+        }
+    }
+
+    pub fn editor_home(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            state.cursor_col = 0;
+        }
+    }
+
+    pub fn editor_end(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            state.cursor_col = state.lines[state.cursor_line].chars().count();
+        }
+    }
+
+    pub fn editor_page_up(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let page = self.editor_viewport_height.saturating_sub(1);
+            state.cursor_line = state.cursor_line.saturating_sub(page);
+            state.scroll_offset = state.scroll_offset.saturating_sub(page);
+            let line_len = state.lines[state.cursor_line].chars().count();
+            state.cursor_col = state.cursor_col.min(line_len);
+        }
+    }
+
+    pub fn editor_page_down(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let page = self.editor_viewport_height.saturating_sub(1);
+            let max_line = state.lines.len().saturating_sub(1);
+            state.cursor_line = (state.cursor_line + page).min(max_line);
+            let max_scroll = state.lines.len().saturating_sub(self.editor_viewport_height);
+            state.scroll_offset = (state.scroll_offset + page).min(max_scroll);
+            let line_len = state.lines[state.cursor_line].chars().count();
+            state.cursor_col = state.cursor_col.min(line_len);
+        }
+    }
+
+    pub fn editor_insert_char(&mut self, c: char) {
+        if let Some(state) = &mut self.editor_state {
+            let line = &mut state.lines[state.cursor_line];
+            let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+            line.insert(byte_idx, c);
+            state.cursor_col += 1;
+            state.modified = true;
+        }
+    }
+
+    pub fn editor_backspace(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            if state.cursor_col > 0 {
+                let line = &mut state.lines[state.cursor_line];
+                let byte_idx = line.char_indices().nth(state.cursor_col - 1).map(|(i, _)| i).unwrap_or(0);
+                let end_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+                line.replace_range(byte_idx..end_idx, "");
+                state.cursor_col -= 1;
+                state.modified = true;
+            } else if state.cursor_line > 0 {
+                // Join with previous line
+                let current_line = state.lines.remove(state.cursor_line);
+                state.cursor_line -= 1;
+                state.cursor_col = state.lines[state.cursor_line].chars().count();
+                state.lines[state.cursor_line].push_str(&current_line);
+                state.modified = true;
+                if state.cursor_line < state.scroll_offset {
+                    state.scroll_offset = state.cursor_line;
+                }
+            }
+        }
+    }
+
+    pub fn editor_delete(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let line_len = state.lines[state.cursor_line].chars().count();
+            if state.cursor_col < line_len {
+                let line = &mut state.lines[state.cursor_line];
+                let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+                let end_idx = line.char_indices().nth(state.cursor_col + 1).map(|(i, _)| i).unwrap_or(line.len());
+                line.replace_range(byte_idx..end_idx, "");
+                state.modified = true;
+            } else if state.cursor_line < state.lines.len().saturating_sub(1) {
+                // Join with next line
+                let next_line = state.lines.remove(state.cursor_line + 1);
+                state.lines[state.cursor_line].push_str(&next_line);
+                state.modified = true;
+            }
+        }
+    }
+
+    pub fn editor_enter(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let line = &mut state.lines[state.cursor_line];
+            let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+            let new_line = line[byte_idx..].to_string();
+            line.truncate(byte_idx);
+            state.cursor_line += 1;
+            state.lines.insert(state.cursor_line, new_line);
+            state.cursor_col = 0;
+            state.modified = true;
+            if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
+                state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+            }
+        }
+    }
+
+    pub fn editor_save(&mut self) -> Result<(), String> {
+        if let Some(state) = &mut self.editor_state {
+            let content = state.lines.join("\n");
+            std::fs::write(&state.file_path, content).map_err(|e| e.to_string())?;
+            state.modified = false;
+        }
+        Ok(())
+    }
+
+    pub fn editor_is_modified(&self) -> bool {
+        self.editor_state.as_ref().map(|s| s.modified).unwrap_or(false)
     }
 }

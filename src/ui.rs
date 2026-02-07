@@ -30,6 +30,8 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
         render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
         if app_state.is_f3_displayed {
             app_state.viewer_viewport_height = render_viewer(f, chunks_main[2], app_state);
+        } else if app_state.is_f4_displayed {
+            app_state.editor_viewport_height = render_editor(f, chunks_main[2], app_state);
         } else {
             app_state.page_size = render_file_tables(f, chunks_main[2], app_state);
         }
@@ -272,8 +274,119 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
     }
 }
 
+fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -> usize {
+    if let Some(editor_state) = &app_state.editor_state {
+        // Calculate line number gutter width
+        let total_lines = editor_state.lines.len();
+        let line_num_width = (total_lines.to_string().len() as u16).max(3) + 2;
+
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Length(line_num_width), Constraint::Min(0)])
+            .split(area);
+
+        let viewport_height = area.height as usize;
+        let start = editor_state.scroll_offset;
+        let end = (start + viewport_height).min(total_lines);
+
+        // Render line numbers
+        let mut line_numbers = Vec::new();
+        for line_num in start..end {
+            let is_current = line_num == editor_state.cursor_line;
+            let style = if is_current {
+                Style::default().fg(COLOR_TITLE).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(COLOR_COLUMNS)
+            };
+            line_numbers.push(Line::from(Span::styled(
+                format!("{:>width$} ", line_num + 1, width = line_num_width as usize - 1),
+                style,
+            )));
+        }
+        let line_number_para = Paragraph::new(line_numbers)
+            .style(Style::default().bg(ratatui::style::Color::Black));
+        f.render_widget(line_number_para, chunks[0]);
+
+        // Render content with cursor
+        let content_width = chunks[1].width as usize;
+        let mut content_lines: Vec<Line> = Vec::new();
+        for (idx, line) in editor_state.lines[start..end].iter().enumerate() {
+            let actual_line_idx = start + idx;
+            let is_current_line = actual_line_idx == editor_state.cursor_line;
+
+            if is_current_line {
+                // Show cursor on this line
+                let cursor_col = editor_state.cursor_col;
+                let chars: Vec<char> = line.chars().collect();
+                let before: String = chars[..cursor_col.min(chars.len())].iter().collect();
+                let cursor_char = chars.get(cursor_col).copied().unwrap_or(' ');
+                let after: String = if cursor_col < chars.len() {
+                    chars[cursor_col + 1..].iter().collect()
+                } else {
+                    String::new()
+                };
+
+                content_lines.push(Line::from(vec![
+                    Span::styled(before, Style::default().fg(COLOR_FILE)),
+                    Span::styled(
+                        cursor_char.to_string(),
+                        Style::default().fg(COLOR_SELECTED_FOREGROUND).bg(COLOR_SELECTED_BACKGROUND),
+                    ),
+                    Span::styled(after, Style::default().fg(COLOR_FILE)),
+                ]));
+            } else {
+                content_lines.push(Line::from(Span::styled(
+                    line.clone(),
+                    Style::default().fg(COLOR_FILE),
+                )));
+            }
+        }
+
+        let content_para = Paragraph::new(content_lines);
+        f.render_widget(content_para, chunks[1]);
+
+        viewport_height
+    } else {
+        0
+    }
+}
+
 fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
-    if app_state.is_f3_displayed {
+    if app_state.is_f4_displayed {
+        // Show editor status
+        if let Some(editor_state) = &app_state.editor_state {
+            let filename = editor_state
+                .file_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown");
+            let modified = if editor_state.modified { " [Modified]" } else { "" };
+            let line = editor_state.cursor_line + 1;
+            let col = editor_state.cursor_col + 1;
+            let total = editor_state.lines.len();
+
+            let status_text = format!(
+                " {}{} | Ln {}, Col {} | {} lines | F2/Ctrl+S Save | Esc Exit ",
+                filename, modified, line, col, total
+            );
+
+            let status_line = vec![
+                Span::styled("├─", Style::default().fg(COLOR_BORDER)),
+                Span::styled(
+                    status_text.clone(),
+                    Style::default()
+                        .fg(COLOR_TITLE)
+                        .bg(COLOR_SELECTED_BACKGROUND),
+                ),
+                Span::styled(
+                    "─".repeat((area.width as usize).saturating_sub(status_text.len()).saturating_sub(3)),
+                    Style::default().fg(COLOR_BORDER),
+                ),
+                Span::styled("┤", Style::default().fg(COLOR_BORDER)),
+            ];
+            f.render_widget(Paragraph::new(Line::from(status_line)), area);
+        }
+    } else if app_state.is_f3_displayed {
         // Show viewer status
         if let Some(viewer_state) = &app_state.viewer_state {
             let filename = viewer_state
@@ -344,7 +457,7 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F1 Help ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F2 Rename ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F3 View ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F4 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F4 Edit ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F7 Create ", Style::default().fg(COLOR_TITLE))).centered())
@@ -395,18 +508,22 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F4 - Edit file (Ctrl+S/F2 save)").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 7, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 8, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 8, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 9, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
