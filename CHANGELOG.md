@@ -6,6 +6,25 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.3.1] - 2026-02-07
+
+### ✨ Added
+- 📦 **F6 Move** — move files and directories to the other panel
+  - Cross-filesystem support (copy + delete fallback)
+- 🖱️ **Double-click** — open directories or view files with double-click
+- ✅ **Multiple selection** — select multiple files for batch operations
+- 📏 **Directory size** — show calculated size for selected directories
+- 🎨 **File type colors** — files colored by extension for easy visual distinction
+- 📂 **Sort by extension** — files ordered by extension by default
+
+### 🛠️ Fixed
+- Cross-filesystem copy/move operations
+- Error handling on directory size calculation
+- Rename click behavior
+- Panel click behavior
+
+---
+
 ## [0.2.0] - 2025-02-07
 
 ### ✨ Added
