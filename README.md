@@ -11,7 +11,7 @@
 
 > 💜 *A synthwave-infused dual-pane TUI file manager, forged in Rust* 💜
 
-**Version 0.1.0** ▀▄▀▄ *Neon Dreams Edition*
+**Version 0.1.1** ▀▄▀▄ *Neon Dreams Edition*
 
 ---
 
@@ -113,6 +113,29 @@ cargo run --release
 
 ---
 
+## 📀 Releases
+
+Pre-built binaries beam down from the neon sky:
+
+| Platform | Architecture | Format |
+|----------|--------------|--------|
+| 🐧 **Linux** | x86_64, ARM64 | `.tar.gz` |
+| 🍎 **macOS** | Intel, Apple Silicon | `.tar.gz` |
+| 🪟 **Windows** | x86_64 | `.zip` |
+
+```bash
+# 📥 Download from GitHub Releases
+# https://github.com/coltwillcox/fm84/releases
+
+# 🎮 Extract and run
+tar -xzf fm84-v*.tar.gz
+./fm84
+```
+
+*No cargo? No problem. Grab a binary and jack in.* 🔌
+
+---
+
 ## 📦 Dependencies
 
 - 🦀 **Rust** (2024 edition)
@@ -160,5 +183,5 @@ The color palette channels pure 80s energy:
 <p align="center">
   <strong>💜 FM84 💜</strong><br>
   <em>Where every file operation feels like a synth drop</em><br>
-  <code>▀▄▀▄▀▄ v0.1.0 ▄▀▄▀▄▀</code>
+  <code>▀▄▀▄▀▄ v0.1.1 ▄▀▄▀▄▀</code>
 </p>

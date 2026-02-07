@@ -66,7 +66,7 @@ pub fn get_root_dir() -> Result<PathBuf, std::io::Error> {
                 return parent.to_path_buf();
             }
             #[cfg(windows)]
-            if parent.as_os_str().as_bytes().contains(&b':') && parent.parent().is_none() {
+            if parent.to_string_lossy().contains(':') && parent.parent().is_none() {
                 // This likely indicates the root of a drive on Windows (e.g., "C:").
                 return parent.to_path_buf();
             }
