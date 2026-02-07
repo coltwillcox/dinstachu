@@ -168,9 +168,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 }
             }
             Event::Mouse(mouse_event) => match mouse_event.kind {
-                MouseEventKind::Down(btn) => {
-                    // TODO Select row in table
-                    app_state.is_left_active = !app_state.is_left_active;
+                MouseEventKind::Down(_btn) => {
+                    handle_mouse_click(app_state, mouse_event.column, mouse_event.row);
                 }
                 MouseEventKind::ScrollDown => handle_move_selection(app_state, |state, len| {
                     state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
@@ -669,4 +668,79 @@ fn handle_copy_confirm(app_state: &mut AppState) {
     }
 
     app_state.reset_copy();
+}
+
+fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
+    // Don't handle clicks during modal dialogs
+    if app_state.is_error_displayed
+        || app_state.is_f1_displayed
+        || app_state.is_f3_displayed
+        || app_state.is_f4_displayed
+        || app_state.is_f5_displayed
+        || app_state.is_f7_displayed
+        || app_state.is_f8_displayed
+    {
+        return;
+    }
+
+    // Get terminal size
+    let (term_width, term_height) = crossterm::terminal::size().unwrap_or((80, 24));
+
+    // Layout: top panel (3) + path bar (1) + file tables + bottom panel (1) + f-key bar (3)
+    // File tables start at row 4, with header row at 4, data starts at row 5
+    let table_start_row = 4u16;
+    let table_end_row = term_height.saturating_sub(4); // Bottom panel (1) + f-key bar (3)
+
+    // Check if click is within file table area
+    if row < table_start_row || row >= table_end_row {
+        return;
+    }
+
+    // Calculate which row in the table was clicked (accounting for header)
+    let header_row = table_start_row;
+    if row <= header_row {
+        return; // Clicked on header
+    }
+
+    let clicked_table_row = (row - header_row - 1) as usize;
+
+    // Determine which panel was clicked (left half or right half)
+    let panel_width = term_width / 2;
+    let clicked_left = column < panel_width;
+
+    // Set active panel
+    app_state.is_left_active = clicked_left;
+
+    // Get the viewport offset for the clicked panel to calculate actual index
+    let (children, state) = if clicked_left {
+        (&app_state.children_left, &mut app_state.state_left)
+    } else {
+        (&app_state.children_right, &mut app_state.state_right)
+    };
+
+    let total = children.len();
+    if total == 0 {
+        return;
+    }
+
+    // Calculate viewport offset (same logic as in ui.rs build_viewport_rows)
+    let viewport_height = (table_end_row - table_start_row - 1) as usize;
+    let selected = state.selected().unwrap_or(0);
+    let half_view = viewport_height / 2;
+
+    let start = if selected <= half_view {
+        0
+    } else if selected + half_view >= total {
+        total.saturating_sub(viewport_height)
+    } else {
+        selected.saturating_sub(half_view)
+    };
+
+    // Calculate actual index from clicked row
+    let actual_index = start + clicked_table_row;
+
+    // Select the row if within bounds
+    if actual_index < total {
+        state.select(Some(actual_index));
+    }
 }
