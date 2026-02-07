@@ -11,7 +11,7 @@
 
 > 💜 *A synthwave-infused dual-pane TUI file manager, forged in Rust* 💜
 
-**Version 0.1.1** ▀▄▀▄ *Neon Dreams Edition*
+**Version 0.2.0** ▀▄▀▄ *Neon Dreams Edition*
 
 ---
 
@@ -57,6 +57,7 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - **F2** ✏️ — Rename files & folders
 - **F3** 👁️ — View files with **syntax highlighting**
 - **F4** 📝 — Edit files (built-in editor, Ctrl+S to save)
+- **F5** 📋 — Copy to other panel
 - **F7** 📂 — Create new directories
 - **F8** 🗑️ — Delete files & folders (with confirmation)
 - **F10** 🚪 — Exit to the void
@@ -91,6 +92,7 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 | `F2` | Rename |
 | `F3` | View file |
 | `F4` | Edit file |
+| `F5` | Copy to other panel |
 | `F7` | Create directory |
 | `F8` | Delete |
 | `F10` | Quit |
@@ -183,5 +185,5 @@ The color palette channels pure 80s energy:
 <p align="center">
   <strong>💜 FM84 💜</strong><br>
   <em>Where every file operation feels like a synth drop</em><br>
-  <code>▀▄▀▄▀▄ v0.1.1 ▄▀▄▀▄▀</code>
+  <code>▀▄▀▄▀▄ v0.2.0 ▄▀▄▀▄▀</code>
 </p>

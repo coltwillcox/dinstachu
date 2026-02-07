@@ -42,6 +42,8 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
             render_error_popup(f, area, app_state);
         } else if app_state.is_f1_displayed {
             render_help_popup(f, area);
+        } else if app_state.is_f5_displayed {
+            render_copy_popup(f, area, app_state);
         } else if app_state.is_f7_displayed {
             render_create_popup(f, area, app_state);
         } else if app_state.is_f8_displayed {
@@ -458,7 +460,7 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F2 Rename ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F3 View ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F4 Edit ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F5 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F5 Copy ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F6 ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F7 Create ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F8 Delete ", Style::default().fg(COLOR_TITLE))).centered())
@@ -512,7 +514,7 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F5 - Copy to other panel").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
     );
     f.render_widget(
@@ -523,7 +525,11 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 8, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 9, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 9, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 10, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
@@ -572,6 +578,43 @@ fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
     f.render_widget(
         Paragraph::new("Y / Enter - Yes    N / Esc - No").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
         popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
+    );
+}
+
+fn render_copy_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
+    let popup_area = centered_rect(70, 35, area);
+
+    let item_type = if app_state.copy_is_dir { "directory" } else { "file" };
+    let title = format!(" Copy {} ", item_type);
+
+    let popup_block = Block::default()
+        .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
+        .borders(Borders::ALL)
+        .style(Style::default().fg(COLOR_BORDER));
+
+    f.render_widget(Clear::default(), popup_area);
+    f.render_widget(popup_block, popup_area);
+
+    // Source path
+    let source_name = app_state.copy_source_path.file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Unknown");
+    f.render_widget(
+        Paragraph::new(format!("Copy \"{}\"", source_name)).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
+    );
+
+    // Destination path
+    let dest_display = limit_path_string(&app_state.copy_dest_path, popup_area.width as usize - 10);
+    f.render_widget(
+        Paragraph::new(format!("to: {}", dest_display)).alignment(Alignment::Center).style(Style::default().fg(COLOR_FILE)),
+        popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
+    );
+
+    // Instructions
+    f.render_widget(
+        Paragraph::new("Y / Enter - Yes    N / Esc - No").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
+        popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
     );
 }
 

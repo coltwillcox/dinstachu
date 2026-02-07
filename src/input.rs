@@ -1,5 +1,5 @@
 use crate::app::{AppState, Item};
-use crate::fs_ops::{create_directory, delete_path, load_directory_rows, rename_path};
+use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_rows, rename_path};
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
@@ -93,6 +93,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         }
                         _ => {}
                     }
+                } else if app_state.is_f5_displayed {
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => handle_esc(app_state),
+                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => handle_copy_confirm(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        _ => {}
+                    }
                 } else {
                     match key.code {
                         KeyCode::Esc => {
@@ -103,6 +110,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(2) => toggle_rename(app_state),
                         KeyCode::F(3) => handle_f3_view(app_state),
                         KeyCode::F(4) => handle_f4_edit(app_state),
+                        KeyCode::F(5) => toggle_copy(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
                         KeyCode::F(8) => toggle_delete(app_state),
                         KeyCode::F(10) => return Ok(false),
@@ -245,6 +253,7 @@ fn handle_esc(app_state: &mut AppState) {
     app_state.reset_rename();
     app_state.reset_create();
     app_state.reset_delete();
+    app_state.reset_copy();
     app_state.close_viewer();
     app_state.close_editor();
 }
@@ -567,3 +576,97 @@ fn handle_f4_edit(app_state: &mut AppState) {
     }
 }
 
+fn toggle_copy(app_state: &mut AppState) {
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
+
+    app_state.is_f5_displayed = !app_state.is_f5_displayed;
+
+    if app_state.is_f5_displayed {
+        let selected_index = if app_state.is_left_active {
+            app_state.state_left.selected().unwrap_or(0)
+        } else {
+            app_state.state_right.selected().unwrap_or(0)
+        };
+
+        let children = if app_state.is_left_active {
+            &app_state.children_left
+        } else {
+            &app_state.children_right
+        };
+
+        if selected_index < children.len() {
+            let item = &children[selected_index];
+            // Don't allow copying ".." parent directory entry
+            if item.name == ".." {
+                app_state.is_f5_displayed = false;
+                return;
+            }
+
+            // Source path from active panel
+            let source_dir = if app_state.is_left_active {
+                &app_state.dir_left
+            } else {
+                &app_state.dir_right
+            };
+            let mut source_path = source_dir.clone();
+            source_path.push(&item.name_full);
+
+            // Destination path to opposite panel
+            let dest_dir = if app_state.is_left_active {
+                &app_state.dir_right
+            } else {
+                &app_state.dir_left
+            };
+            let mut dest_path = dest_dir.clone();
+            dest_path.push(&item.name_full);
+
+            app_state.copy_source_path = source_path;
+            app_state.copy_dest_path = dest_path;
+            app_state.copy_is_dir = item.is_dir;
+        } else {
+            app_state.is_f5_displayed = false;
+        }
+    } else {
+        app_state.reset_copy();
+    }
+}
+
+fn handle_copy_confirm(app_state: &mut AppState) {
+    let source = app_state.copy_source_path.clone();
+    let dest = app_state.copy_dest_path.clone();
+    let is_dir = app_state.copy_is_dir;
+
+    // Check if destination already exists
+    if dest.exists() {
+        app_state.display_error(format!("Destination already exists: {}", dest.display()));
+        app_state.reset_copy();
+        return;
+    }
+
+    match copy_path(source, dest, is_dir) {
+        Ok(_) => {
+            // Reload the destination panel (opposite of active)
+            let dest_dir = if app_state.is_left_active {
+                &app_state.dir_right
+            } else {
+                &app_state.dir_left
+            };
+
+            match load_directory_rows(dest_dir) {
+                Ok(items) => {
+                    if app_state.is_left_active {
+                        app_state.children_right = items;
+                    } else {
+                        app_state.children_left = items;
+                    }
+                }
+                Err(e) => app_state.display_error(e.to_string()),
+            }
+        }
+        Err(e) => app_state.display_error(e.to_string()),
+    }
+
+    app_state.reset_copy();
+}

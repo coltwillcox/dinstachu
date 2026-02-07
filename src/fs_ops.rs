@@ -1,7 +1,7 @@
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
-use std::fs::{DirEntry, create_dir, read_dir, remove_dir_all, remove_file, rename};
+use std::fs::{self, DirEntry, create_dir, read_dir, remove_dir_all, remove_file, rename};
 use std::io::Error;
 use std::path::PathBuf;
 
@@ -99,5 +99,33 @@ pub fn delete_path(path: PathBuf, is_dir: bool) -> Result<(), Error> {
 
 pub fn create_directory(path: PathBuf) -> Result<(), Error> {
     create_dir(path)?;
+    Ok(())
+}
+
+pub fn copy_path(source: PathBuf, dest: PathBuf, is_dir: bool) -> Result<(), Error> {
+    if is_dir {
+        copy_dir_recursive(&source, &dest)
+    } else {
+        fs::copy(&source, &dest)?;
+        Ok(())
+    }
+}
+
+fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
+    fs::create_dir_all(dest)?;
+
+    for entry in read_dir(source)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let file_name = entry.file_name();
+        let dest_path = dest.join(&file_name);
+
+        if entry_path.is_dir() {
+            copy_dir_recursive(&entry_path, &dest_path)?;
+        } else {
+            fs::copy(&entry_path, &dest_path)?;
+        }
+    }
+
     Ok(())
 }

@@ -6,6 +6,16 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.2.0] - 2025-02-07
+
+### ✨ Added
+- 📋 **F5 Copy** — copy files and directories to the other panel
+  - Recursive directory copying
+  - Confirmation dialog with destination path
+  - Duplicate detection
+
+---
+
 ## [0.1.1] - 2025-02-07
 
 ### 🛠️ Fixed

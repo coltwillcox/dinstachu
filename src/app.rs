@@ -34,6 +34,10 @@ pub struct AppState {
     pub is_f4_displayed: bool,
     pub editor_state: Option<EditorState>,
     pub editor_viewport_height: usize,
+    pub is_f5_displayed: bool,
+    pub copy_source_path: PathBuf,
+    pub copy_dest_path: PathBuf,
+    pub copy_is_dir: bool,
 }
 
 #[derive(Clone)]
@@ -105,6 +109,10 @@ impl AppState {
             is_f4_displayed: false,
             editor_state: None,
             editor_viewport_height: 0,
+            is_f5_displayed: false,
+            copy_source_path: PathBuf::new(),
+            copy_dest_path: PathBuf::new(),
+            copy_is_dir: false,
         }
     }
 
@@ -571,5 +579,12 @@ impl AppState {
 
     pub fn editor_is_modified(&self) -> bool {
         self.editor_state.as_ref().map(|s| s.modified).unwrap_or(false)
+    }
+
+    pub fn reset_copy(&mut self) {
+        self.is_f5_displayed = false;
+        self.copy_source_path = PathBuf::new();
+        self.copy_dest_path = PathBuf::new();
+        self.copy_is_dir = false;
     }
 }
