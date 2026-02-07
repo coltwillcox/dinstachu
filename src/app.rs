@@ -3,6 +3,7 @@ use crate::viewer::ViewerState;
 use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::time::Instant;
 
 pub struct AppState {
     pub is_error_displayed: bool,
@@ -46,6 +47,8 @@ pub struct AppState {
     pub selected_left: HashSet<usize>,
     pub selected_right: HashSet<usize>,
     pub dir_sizes: HashMap<PathBuf, u64>,
+    pub last_click_time: Option<Instant>,
+    pub last_click_pos: (u16, u16),
 }
 
 #[derive(Clone)]
@@ -128,6 +131,8 @@ impl AppState {
             selected_left: HashSet::new(),
             selected_right: HashSet::new(),
             dir_sizes: HashMap::new(),
+            last_click_time: None,
+            last_click_pos: (0, 0),
         }
     }
 

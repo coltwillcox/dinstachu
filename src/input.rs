@@ -3,7 +3,7 @@ use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_row
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
     if event::poll(Duration::from_millis(100))? {
@@ -831,6 +831,19 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
         app_state.reset_rename();
     }
 
+    // Check for double-click (same position within 500ms)
+    let now = Instant::now();
+    let is_double_click = if let Some(last_time) = app_state.last_click_time {
+        let elapsed = now.duration_since(last_time);
+        elapsed < Duration::from_millis(500) && app_state.last_click_pos == (column, row)
+    } else {
+        false
+    };
+
+    // Update last click tracking
+    app_state.last_click_time = Some(now);
+    app_state.last_click_pos = (column, row);
+
     // Clear all selections on mouse click
     app_state.clear_all_selections();
 
@@ -863,10 +876,10 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
     app_state.is_left_active = clicked_left;
 
     // Get the viewport offset for the clicked panel to calculate actual index
-    let (children, state) = if clicked_left {
-        (&app_state.children_left, &mut app_state.state_left)
+    let children = if clicked_left {
+        &app_state.children_left
     } else {
-        (&app_state.children_right, &mut app_state.state_right)
+        &app_state.children_right
     };
 
     let total = children.len();
@@ -876,6 +889,11 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
 
     // Calculate viewport offset (same logic as in ui.rs build_viewport_rows)
     let viewport_height = (table_end_row - table_start_row - 1) as usize;
+    let state = if clicked_left {
+        &app_state.state_left
+    } else {
+        &app_state.state_right
+    };
     let selected = state.selected().unwrap_or(0);
     let half_view = viewport_height / 2;
 
@@ -892,6 +910,23 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
 
     // Select the row if within bounds
     if actual_index < total {
+        let state = if clicked_left {
+            &mut app_state.state_left
+        } else {
+            &mut app_state.state_right
+        };
         state.select(Some(actual_index));
+
+        // Double-click on directory: enter it
+        if is_double_click {
+            let children = if clicked_left {
+                &app_state.children_left
+            } else {
+                &app_state.children_right
+            };
+            if actual_index < children.len() && children[actual_index].is_dir {
+                enter_directory_panel(app_state);
+            }
+        }
     }
 }
