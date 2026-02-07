@@ -130,19 +130,21 @@ fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn calculate_dir_size(path: &PathBuf) -> u64 {
+pub fn calculate_dir_size(path: &PathBuf) -> Result<u64, Error> {
     let mut total_size = 0u64;
 
-    if let Ok(entries) = read_dir(path) {
-        for entry in entries.filter_map(|e| e.ok()) {
-            let entry_path = entry.path();
-            if entry_path.is_dir() {
-                total_size += calculate_dir_size(&entry_path);
-            } else if let Ok(metadata) = entry.metadata() {
-                total_size += metadata.len();
+    for entry in read_dir(path)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        if entry_path.is_dir() {
+            // Continue on subdirectory errors, just skip that dir
+            if let Ok(size) = calculate_dir_size(&entry_path) {
+                total_size += size;
             }
+        } else {
+            total_size += entry.metadata()?.len();
         }
     }
 
-    total_size
+    Ok(total_size)
 }

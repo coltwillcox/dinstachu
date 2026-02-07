@@ -598,38 +598,57 @@ impl AppState {
     pub fn toggle_selection(&mut self) {
         use crate::fs_ops::calculate_dir_size;
 
-        let (state, children, selected_set, current_dir) = if self.is_left_active {
-            (&mut self.state_left, &self.children_left, &mut self.selected_left, &self.dir_left)
-        } else {
-            (&mut self.state_right, &self.children_right, &mut self.selected_right, &self.dir_right)
-        };
+        let mut error_msg: Option<String> = None;
+        let mut dir_size_result: Option<(PathBuf, u64)> = None;
 
-        if let Some(index) = state.selected() {
-            // Don't allow selecting ".." entry
-            if index < children.len() && children[index].name != ".." {
-                let item = &children[index];
+        {
+            let (state, children, selected_set, current_dir) = if self.is_left_active {
+                (&mut self.state_left, &self.children_left, &mut self.selected_left, &self.dir_left)
+            } else {
+                (&mut self.state_right, &self.children_right, &mut self.selected_right, &self.dir_right)
+            };
 
-                if selected_set.contains(&index) {
-                    selected_set.remove(&index);
-                } else {
-                    selected_set.insert(index);
+            if let Some(index) = state.selected() {
+                // Don't allow selecting ".." entry
+                if index < children.len() && children[index].name != ".." {
+                    let item = &children[index];
 
-                    // Calculate directory size when selecting
-                    if item.is_dir {
-                        let mut full_path = current_dir.clone();
-                        full_path.push(&item.name_full);
-                        let size = calculate_dir_size(&full_path);
-                        self.dir_sizes.insert(full_path, size);
+                    if selected_set.contains(&index) {
+                        selected_set.remove(&index);
+                    } else {
+                        selected_set.insert(index);
+
+                        // Calculate directory size when selecting
+                        if item.is_dir {
+                            let mut full_path = current_dir.clone();
+                            full_path.push(&item.name_full);
+                            match calculate_dir_size(&full_path) {
+                                Ok(size) => {
+                                    dir_size_result = Some((full_path, size));
+                                }
+                                Err(e) => {
+                                    error_msg = Some(format!("Cannot calculate size: {}", e));
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            // Move to next item
-            let len = children.len();
-            if len > 0 {
-                let next = if index >= len - 1 { index } else { index + 1 };
-                state.select(Some(next));
+                // Move to next item
+                let len = children.len();
+                if len > 0 {
+                    let next = if index >= len - 1 { index } else { index + 1 };
+                    state.select(Some(next));
+                }
             }
+        }
+
+        // Handle results after borrows are released
+        if let Some((path, size)) = dir_size_result {
+            self.dir_sizes.insert(path, size);
+        }
+        if let Some(msg) = error_msg {
+            self.display_error(msg);
         }
     }
 
