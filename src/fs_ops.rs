@@ -129,3 +129,20 @@ fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
 
     Ok(())
 }
+
+pub fn calculate_dir_size(path: &PathBuf) -> u64 {
+    let mut total_size = 0u64;
+
+    if let Ok(entries) = read_dir(path) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                total_size += calculate_dir_size(&entry_path);
+            } else if let Ok(metadata) = entry.metadata() {
+                total_size += metadata.len();
+            }
+        }
+    }
+
+    total_size
+}

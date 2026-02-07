@@ -1,7 +1,7 @@
 use crate::fs_ops::get_current_dir;
 use crate::viewer::ViewerState;
 use ratatui::widgets::TableState;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 pub struct AppState {
@@ -41,6 +41,7 @@ pub struct AppState {
     pub copy_is_dir: bool,
     pub selected_left: HashSet<usize>,
     pub selected_right: HashSet<usize>,
+    pub dir_sizes: HashMap<PathBuf, u64>,
 }
 
 #[derive(Clone)]
@@ -118,6 +119,7 @@ impl AppState {
             copy_is_dir: false,
             selected_left: HashSet::new(),
             selected_right: HashSet::new(),
+            dir_sizes: HashMap::new(),
         }
     }
 
@@ -594,19 +596,31 @@ impl AppState {
     }
 
     pub fn toggle_selection(&mut self) {
-        let (state, children, selected_set) = if self.is_left_active {
-            (&mut self.state_left, &self.children_left, &mut self.selected_left)
+        use crate::fs_ops::calculate_dir_size;
+
+        let (state, children, selected_set, current_dir) = if self.is_left_active {
+            (&mut self.state_left, &self.children_left, &mut self.selected_left, &self.dir_left)
         } else {
-            (&mut self.state_right, &self.children_right, &mut self.selected_right)
+            (&mut self.state_right, &self.children_right, &mut self.selected_right, &self.dir_right)
         };
 
         if let Some(index) = state.selected() {
             // Don't allow selecting ".." entry
             if index < children.len() && children[index].name != ".." {
+                let item = &children[index];
+
                 if selected_set.contains(&index) {
                     selected_set.remove(&index);
                 } else {
                     selected_set.insert(index);
+
+                    // Calculate directory size when selecting
+                    if item.is_dir {
+                        let mut full_path = current_dir.clone();
+                        full_path.push(&item.name_full);
+                        let size = calculate_dir_size(&full_path);
+                        self.dir_sizes.insert(full_path, size);
+                    }
                 }
             }
 

@@ -153,6 +153,7 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
     let children = if is_left { &app_state.children_left } else { &app_state.children_right };
     let state = if is_left { &app_state.state_left } else { &app_state.state_right };
     let selected_set = if is_left { &app_state.selected_left } else { &app_state.selected_right };
+    let current_dir = if is_left { &app_state.dir_left } else { &app_state.dir_right };
     let selected = state.selected().unwrap_or(0);
     let total = children.len();
 
@@ -208,6 +209,19 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
             COLOR_FILE
         };
 
+        // Get size - for selected directories, show calculated size if available
+        let size = if child.is_dir && is_selected && child.name != ".." {
+            let mut full_path = current_dir.clone();
+            full_path.push(&child.name_full);
+            if let Some(&calculated_size) = app_state.dir_sizes.get(&full_path) {
+                format_size(calculated_size)
+            } else {
+                child.size.clone()
+            }
+        } else {
+            child.size.clone()
+        };
+
         rows.push(Row::new(vec![
             Cell::from(Span::styled(icon, Style::default().fg(icon_color))),
             Cell::from(Line::from(vec![
@@ -218,7 +232,7 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
             Cell::from(Span::styled(extension, Style::default().fg(text_color))),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
-            Cell::from(Span::styled(child.size.clone(), Style::default().fg(text_color))),
+            Cell::from(Span::styled(size, Style::default().fg(text_color))),
         ]));
     }
 
