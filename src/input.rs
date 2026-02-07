@@ -1,5 +1,5 @@
 use crate::app::{AppState, Item};
-use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_rows, rename_path};
+use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_rows, move_path, rename_path};
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
@@ -100,6 +100,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(10) => return Ok(false),
                         _ => {}
                     }
+                } else if app_state.is_f6_displayed {
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => handle_esc(app_state),
+                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => handle_move_confirm(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        _ => {}
+                    }
                 } else {
                     match key.code {
                         KeyCode::Esc => {
@@ -111,6 +118,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(3) => handle_f3_view(app_state),
                         KeyCode::F(4) => handle_f4_edit(app_state),
                         KeyCode::F(5) => toggle_copy(app_state),
+                        KeyCode::F(6) => toggle_move(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
                         KeyCode::F(8) => toggle_delete(app_state),
                         KeyCode::F(10) => return Ok(false),
@@ -257,6 +265,7 @@ fn handle_esc(app_state: &mut AppState) {
     app_state.reset_create();
     app_state.reset_delete();
     app_state.reset_copy();
+    app_state.reset_move();
     app_state.close_viewer();
     app_state.close_editor();
 }
@@ -677,6 +686,132 @@ fn handle_copy_confirm(app_state: &mut AppState) {
     app_state.reset_copy();
 }
 
+fn toggle_move(app_state: &mut AppState) {
+    if app_state.is_error_displayed || app_state.is_f1_displayed {
+        return;
+    }
+
+    app_state.is_f6_displayed = !app_state.is_f6_displayed;
+
+    if app_state.is_f6_displayed {
+        let selected_index = if app_state.is_left_active {
+            app_state.state_left.selected().unwrap_or(0)
+        } else {
+            app_state.state_right.selected().unwrap_or(0)
+        };
+
+        let children = if app_state.is_left_active {
+            &app_state.children_left
+        } else {
+            &app_state.children_right
+        };
+
+        if selected_index < children.len() {
+            let item = &children[selected_index];
+            // Don't allow moving ".." parent directory entry
+            if item.name == ".." {
+                app_state.is_f6_displayed = false;
+                return;
+            }
+
+            // Source path from active panel
+            let source_dir = if app_state.is_left_active {
+                &app_state.dir_left
+            } else {
+                &app_state.dir_right
+            };
+            let mut source_path = source_dir.clone();
+            source_path.push(&item.name_full);
+
+            // Destination path to opposite panel
+            let dest_dir = if app_state.is_left_active {
+                &app_state.dir_right
+            } else {
+                &app_state.dir_left
+            };
+            let mut dest_path = dest_dir.clone();
+            dest_path.push(&item.name_full);
+
+            app_state.move_source_path = source_path;
+            app_state.move_dest_path = dest_path;
+            app_state.move_is_dir = item.is_dir;
+        } else {
+            app_state.is_f6_displayed = false;
+        }
+    } else {
+        app_state.reset_move();
+    }
+}
+
+fn handle_move_confirm(app_state: &mut AppState) {
+    let source = app_state.move_source_path.clone();
+    let dest = app_state.move_dest_path.clone();
+    let is_dir = app_state.move_is_dir;
+
+    // Check if destination already exists
+    if dest.exists() {
+        app_state.display_error(format!("Destination already exists: {}", dest.display()));
+        app_state.reset_move();
+        return;
+    }
+
+    // Clone paths before move to avoid borrow issues
+    let source_dir = if app_state.is_left_active {
+        app_state.dir_left.clone()
+    } else {
+        app_state.dir_right.clone()
+    };
+    let dest_dir = if app_state.is_left_active {
+        app_state.dir_right.clone()
+    } else {
+        app_state.dir_left.clone()
+    };
+
+    match move_path(source, dest, is_dir) {
+        Ok(_) => {
+            // Reload source panel
+            match load_directory_rows(&source_dir) {
+                Ok(items) => {
+                    if app_state.is_left_active {
+                        app_state.children_left = items;
+                        // Adjust selection if needed
+                        let len = app_state.children_left.len();
+                        if let Some(selected) = app_state.state_left.selected() {
+                            if selected >= len {
+                                app_state.state_left.select(Some(len.saturating_sub(1)));
+                            }
+                        }
+                    } else {
+                        app_state.children_right = items;
+                        let len = app_state.children_right.len();
+                        if let Some(selected) = app_state.state_right.selected() {
+                            if selected >= len {
+                                app_state.state_right.select(Some(len.saturating_sub(1)));
+                            }
+                        }
+                    }
+                }
+                Err(e) => app_state.display_error(e.to_string()),
+            }
+
+            // Reload destination panel
+            match load_directory_rows(&dest_dir) {
+                Ok(items) => {
+                    if app_state.is_left_active {
+                        app_state.children_right = items;
+                    } else {
+                        app_state.children_left = items;
+                    }
+                }
+                Err(e) => app_state.display_error(e.to_string()),
+            }
+        }
+        Err(e) => app_state.display_error(e.to_string()),
+    }
+
+    app_state.reset_move();
+}
+
 fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
     // Don't handle clicks during modal dialogs (except F2 rename which gets canceled)
     if app_state.is_error_displayed
@@ -684,6 +819,7 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
         || app_state.is_f3_displayed
         || app_state.is_f4_displayed
         || app_state.is_f5_displayed
+        || app_state.is_f6_displayed
         || app_state.is_f7_displayed
         || app_state.is_f8_displayed
     {

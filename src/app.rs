@@ -39,6 +39,10 @@ pub struct AppState {
     pub copy_source_path: PathBuf,
     pub copy_dest_path: PathBuf,
     pub copy_is_dir: bool,
+    pub is_f6_displayed: bool,
+    pub move_source_path: PathBuf,
+    pub move_dest_path: PathBuf,
+    pub move_is_dir: bool,
     pub selected_left: HashSet<usize>,
     pub selected_right: HashSet<usize>,
     pub dir_sizes: HashMap<PathBuf, u64>,
@@ -117,6 +121,10 @@ impl AppState {
             copy_source_path: PathBuf::new(),
             copy_dest_path: PathBuf::new(),
             copy_is_dir: false,
+            is_f6_displayed: false,
+            move_source_path: PathBuf::new(),
+            move_dest_path: PathBuf::new(),
+            move_is_dir: false,
             selected_left: HashSet::new(),
             selected_right: HashSet::new(),
             dir_sizes: HashMap::new(),
@@ -593,6 +601,13 @@ impl AppState {
         self.copy_source_path = PathBuf::new();
         self.copy_dest_path = PathBuf::new();
         self.copy_is_dir = false;
+    }
+
+    pub fn reset_move(&mut self) {
+        self.is_f6_displayed = false;
+        self.move_source_path = PathBuf::new();
+        self.move_dest_path = PathBuf::new();
+        self.move_is_dir = false;
     }
 
     pub fn toggle_selection(&mut self) {

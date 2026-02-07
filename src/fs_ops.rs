@@ -130,6 +130,24 @@ fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn move_path(source: PathBuf, dest: PathBuf, is_dir: bool) -> Result<(), Error> {
+    // Try rename first (fast, same filesystem)
+    match rename(&source, &dest) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            // If rename fails (e.g., cross-filesystem), fall back to copy + delete
+            if e.raw_os_error() == Some(18) || e.kind() == std::io::ErrorKind::CrossesDevices {
+                // Copy then delete
+                copy_path(source.clone(), dest, is_dir)?;
+                delete_path(source, is_dir)?;
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
+    }
+}
+
 pub fn calculate_dir_size(path: &PathBuf) -> Result<u64, Error> {
     let mut total_size = 0u64;
 
