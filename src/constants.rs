@@ -1,7 +1,7 @@
 use ratatui::style::Color;
 
 pub const TITLE: &str = "File Manager '84";
-pub const VERSION: &str = "0.0.1";
+pub const VERSION: &str = "0.1.0";
 
 pub const ICON_FOLDER: &str = " "; // Added space after icon is workaround for small icons bug in table columns
 pub const ICON_FILE: &str = " ";
