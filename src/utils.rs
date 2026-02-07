@@ -1,4 +1,5 @@
 use crate::constants::*;
+use ratatui::style::Color;
 use std::path::PathBuf;
 
 // Converts bytes to human-readable format with binary prefixes (KiB, MiB, etc.)
@@ -12,6 +13,35 @@ pub fn format_size(bytes: u64) -> String {
     }
 
     format!("{:.0} {}", size, UNITS[unit_index])
+}
+
+pub fn color_for_extension(ext: &str) -> Color {
+    if ext.is_empty() {
+        return COLOR_FILE;
+    }
+    // Simple hash of extension bytes.
+    let hash: u32 = ext.bytes().fold(5381u32, |h, b| h.wrapping_mul(33).wrapping_add(b as u32));
+    // Derive hue 0..360, keep saturation and lightness high for synthwave look.
+    let hue: f64 = (hash % 360) as f64;
+    let saturation: f64 = 0.7;
+    let lightness: f64 = 0.65;
+    // HSL to RGB.
+    let c = (1.0 - (2.0 * lightness - 1.0).abs()) * saturation;
+    let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
+    let m = lightness - c / 2.0;
+    let (r1, g1, b1) = match hue as u32 {
+        0..60 => (c, x, 0.0),
+        60..120 => (x, c, 0.0),
+        120..180 => (0.0, c, x),
+        180..240 => (0.0, x, c),
+        240..300 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    Color::Rgb(
+        ((r1 + m) * 255.0) as u8,
+        ((g1 + m) * 255.0) as u8,
+        ((b1 + m) * 255.0) as u8,
+    )
 }
 
 pub fn limit_path_string(path_buf: &PathBuf, n: usize) -> String {

@@ -21,7 +21,14 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
     entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
         (true, false) => std::cmp::Ordering::Less,
         (false, true) => std::cmp::Ordering::Greater,
-        _ => a.file_name().to_string_lossy().to_lowercase().cmp(&b.file_name().to_string_lossy().to_lowercase()),
+        (true, true) => a.file_name().to_string_lossy().to_lowercase().cmp(&b.file_name().to_string_lossy().to_lowercase()),
+        (false, false) => {
+            let ext_a = a.path().extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+            let ext_b = b.path().extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+            ext_a.cmp(&ext_b).then_with(|| {
+                a.file_name().to_string_lossy().to_lowercase().cmp(&b.file_name().to_string_lossy().to_lowercase())
+            })
+        }
     });
 
     let mut children = Vec::<Item>::new();

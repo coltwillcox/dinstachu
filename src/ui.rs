@@ -185,12 +185,13 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
 
         // Keep original icon, change color if selected
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
+        let file_color = color_for_extension(&child.extension);
         let icon_color = if is_selected {
             COLOR_SELECTED_MARKER
         } else if child.is_dir {
             COLOR_DIRECTORY
         } else {
-            COLOR_FILE
+            file_color
         };
 
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
@@ -208,7 +209,7 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
         } else if child.is_dir {
             COLOR_DIRECTORY
         } else {
-            COLOR_FILE
+            file_color
         };
 
         // Get size - for selected directories, show calculated size if available
