@@ -671,7 +671,7 @@ fn handle_copy_confirm(app_state: &mut AppState) {
 }
 
 fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
-    // Don't handle clicks during modal dialogs
+    // Don't handle clicks during modal dialogs (except F2 rename which gets canceled)
     if app_state.is_error_displayed
         || app_state.is_f1_displayed
         || app_state.is_f3_displayed
@@ -681,6 +681,11 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
         || app_state.is_f8_displayed
     {
         return;
+    }
+
+    // Cancel F2 rename mode if active
+    if app_state.is_f2_displayed {
+        app_state.reset_rename();
     }
 
     // Get terminal size
