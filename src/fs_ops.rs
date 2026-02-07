@@ -1,8 +1,8 @@
 use crate::app::Item;
 use crate::utils::format_size;
 use std::env;
-use std::fs::{self, DirEntry, create_dir, read_dir, remove_dir_all, remove_file, rename};
-use std::io::Error;
+use std::fs::{self, DirEntry, File, create_dir, read_dir, remove_dir_all, remove_file, rename};
+use std::io::{Error, Read, Write};
 use std::path::PathBuf;
 
 pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
@@ -106,9 +106,27 @@ pub fn copy_path(source: PathBuf, dest: PathBuf, is_dir: bool) -> Result<(), Err
     if is_dir {
         copy_dir_recursive(&source, &dest)
     } else {
-        fs::copy(&source, &dest)?;
-        Ok(())
+        copy_file_content(&source, &dest)
     }
+}
+
+/// Copy file content without trying to preserve Unix permissions.
+/// This works across filesystems (e.g., ext4 to exFAT) where permission
+/// preservation would fail with EPERM.
+fn copy_file_content(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
+    let mut src_file = File::open(source)?;
+    let mut dst_file = File::create(dest)?;
+
+    let mut buffer = [0u8; 64 * 1024]; // 64KB buffer
+    loop {
+        let bytes_read = src_file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        dst_file.write_all(&buffer[..bytes_read])?;
+    }
+
+    Ok(())
 }
 
 fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
@@ -123,7 +141,7 @@ fn copy_dir_recursive(source: &PathBuf, dest: &PathBuf) -> Result<(), Error> {
         if entry_path.is_dir() {
             copy_dir_recursive(&entry_path, &dest_path)?;
         } else {
-            fs::copy(&entry_path, &dest_path)?;
+            copy_file_content(&entry_path, &dest_path)?;
         }
     }
 
@@ -135,11 +153,30 @@ pub fn move_path(source: PathBuf, dest: PathBuf, is_dir: bool) -> Result<(), Err
     match rename(&source, &dest) {
         Ok(_) => Ok(()),
         Err(e) => {
-            // If rename fails (e.g., cross-filesystem), fall back to copy + delete
-            if e.raw_os_error() == Some(18) || e.kind() == std::io::ErrorKind::CrossesDevices {
-                // Copy then delete
-                copy_path(source.clone(), dest, is_dir)?;
-                delete_path(source, is_dir)?;
+            // Check for cross-device error:
+            // - EXDEV (18) on Linux/macOS/Unix
+            // - ERROR_NOT_SAME_DEVICE (17) on Windows
+            let is_cross_device = match e.raw_os_error() {
+                Some(18) => true,  // EXDEV on Unix
+                Some(17) => true,  // ERROR_NOT_SAME_DEVICE on Windows
+                _ => false,
+            };
+
+            if is_cross_device {
+                // Cross-device move: copy then delete
+                copy_path(source.clone(), dest.clone(), is_dir)?;
+
+                // Delete source - if this fails, the copy succeeded but source remains
+                if let Err(del_err) = delete_path(source, is_dir) {
+                    return Err(Error::new(
+                        del_err.kind(),
+                        format!(
+                            "Move partially complete: copied to {} but failed to delete source: {}",
+                            dest.display(),
+                            del_err
+                        ),
+                    ));
+                }
                 Ok(())
             } else {
                 Err(e)
