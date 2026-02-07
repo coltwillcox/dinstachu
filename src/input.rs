@@ -115,7 +115,11 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(8) => toggle_delete(app_state),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Char('q') => return Ok(false), // Temp debug
-                        KeyCode::Char(c) if c.is_alphanumeric() || c.is_whitespace() || ".-_".contains(c) => {
+                        KeyCode::Char(' ') => {
+                            // Space toggles selection and moves to next item
+                            app_state.toggle_selection();
+                        }
+                        KeyCode::Char(c) if c.is_alphanumeric() || ".-_".contains(c) => {
                             app_state.search_add_char(c);
                         }
                         KeyCode::Backspace => {
@@ -317,6 +321,7 @@ fn navigate_up_panel(app_state: &mut AppState) {
             let selected_new = children.iter().position(|item| item.name == name_current).unwrap_or(0);
             state.select(Some(selected_new));
             app_state.search_clear();
+            app_state.clear_active_selections();
         }
         Err(e) => app_state.display_error(e.to_string()),
     }
@@ -364,6 +369,7 @@ fn enter_directory_panel(app_state: &mut AppState) {
                 let selected_new = children_mut.iter().position(|item| Some(&item.name) == current_dir_name.as_ref()).unwrap_or(0);
                 state.select(Some(selected_new));
                 app_state.search_clear();
+                app_state.clear_active_selections();
             }
             Err(e) => app_state.display_error(e.to_string()),
         }
@@ -379,6 +385,7 @@ fn enter_directory_panel(app_state: &mut AppState) {
                 *children = children_new;
                 state.select(Some(0));
                 app_state.search_clear();
+                app_state.clear_active_selections();
             }
             Err(e) => app_state.display_error(e.to_string()),
         }
@@ -687,6 +694,9 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
     if app_state.is_f2_displayed {
         app_state.reset_rename();
     }
+
+    // Clear all selections on mouse click
+    app_state.clear_all_selections();
 
     // Get terminal size
     let (term_width, term_height) = crossterm::terminal::size().unwrap_or((80, 24));

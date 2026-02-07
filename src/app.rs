@@ -1,6 +1,7 @@
 use crate::fs_ops::get_current_dir;
 use crate::viewer::ViewerState;
 use ratatui::widgets::TableState;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub struct AppState {
@@ -38,6 +39,8 @@ pub struct AppState {
     pub copy_source_path: PathBuf,
     pub copy_dest_path: PathBuf,
     pub copy_is_dir: bool,
+    pub selected_left: HashSet<usize>,
+    pub selected_right: HashSet<usize>,
 }
 
 #[derive(Clone)]
@@ -113,6 +116,8 @@ impl AppState {
             copy_source_path: PathBuf::new(),
             copy_dest_path: PathBuf::new(),
             copy_is_dir: false,
+            selected_left: HashSet::new(),
+            selected_right: HashSet::new(),
         }
     }
 
@@ -586,5 +591,44 @@ impl AppState {
         self.copy_source_path = PathBuf::new();
         self.copy_dest_path = PathBuf::new();
         self.copy_is_dir = false;
+    }
+
+    pub fn toggle_selection(&mut self) {
+        let (state, children, selected_set) = if self.is_left_active {
+            (&mut self.state_left, &self.children_left, &mut self.selected_left)
+        } else {
+            (&mut self.state_right, &self.children_right, &mut self.selected_right)
+        };
+
+        if let Some(index) = state.selected() {
+            // Don't allow selecting ".." entry
+            if index < children.len() && children[index].name != ".." {
+                if selected_set.contains(&index) {
+                    selected_set.remove(&index);
+                } else {
+                    selected_set.insert(index);
+                }
+            }
+
+            // Move to next item
+            let len = children.len();
+            if len > 0 {
+                let next = if index >= len - 1 { index } else { index + 1 };
+                state.select(Some(next));
+            }
+        }
+    }
+
+    pub fn clear_all_selections(&mut self) {
+        self.selected_left.clear();
+        self.selected_right.clear();
+    }
+
+    pub fn clear_active_selections(&mut self) {
+        if self.is_left_active {
+            self.selected_left.clear();
+        } else {
+            self.selected_right.clear();
+        }
     }
 }

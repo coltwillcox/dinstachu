@@ -18,5 +18,6 @@ pub const COLOR_SELECTED_BACKGROUND: Color = Color::Rgb(148, 0, 211);        // 
 pub const COLOR_SELECTED_BACKGROUND_INACTIVE: Color = Color::Rgb(45, 0, 75); // Dark purple
 pub const COLOR_SELECTED_FOREGROUND: Color = Color::Rgb(0, 255, 255);        // Cyan
 pub const COLOR_TITLE: Color = Color::Rgb(242, 34, 255);                     // Purple
+pub const COLOR_SELECTED_MARKER: Color = Color::Rgb(255, 215, 0);            // Gold/Yellow for selection marker
 
 pub const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];

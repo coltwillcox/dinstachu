@@ -152,6 +152,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usize, rename_input: Option<&str>) -> (Vec<Row<'static>>, usize) {
     let children = if is_left { &app_state.children_left } else { &app_state.children_right };
     let state = if is_left { &app_state.state_left } else { &app_state.state_right };
+    let selected_set = if is_left { &app_state.selected_left } else { &app_state.selected_right };
     let selected = state.selected().unwrap_or(0);
     let total = children.len();
 
@@ -177,7 +178,18 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
     for index in start..end {
         let child = &children[index];
         let is_renaming_current_item = is_renaming_current_side && (index == selected);
+        let is_selected = selected_set.contains(&index);
+
+        // Keep original icon, change color if selected
         let icon = if child.is_dir { ICON_FOLDER } else { ICON_FILE };
+        let icon_color = if is_selected {
+            COLOR_SELECTED_MARKER
+        } else if child.is_dir {
+            COLOR_DIRECTORY
+        } else {
+            COLOR_FILE
+        };
+
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
 
         let name = if is_renaming_current_item {
@@ -187,17 +199,26 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
         };
         let extension = if is_renaming_current_item { String::new() } else { child.extension.clone() };
 
+        // Use selection marker color for selected items
+        let text_color = if is_selected {
+            COLOR_SELECTED_MARKER
+        } else if child.is_dir {
+            COLOR_DIRECTORY
+        } else {
+            COLOR_FILE
+        };
+
         rows.push(Row::new(vec![
-            Cell::from(Span::styled(icon, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled(icon, Style::default().fg(icon_color))),
             Cell::from(Line::from(vec![
-                Span::styled(dir_prefix, Style::default().fg(COLOR_DIRECTORY_FIX)),
-                Span::styled(name, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE })),
-                Span::styled(dir_suffix, Style::default().fg(COLOR_DIRECTORY_FIX)),
+                Span::styled(dir_prefix, Style::default().fg(if is_selected { COLOR_SELECTED_MARKER } else { COLOR_DIRECTORY_FIX })),
+                Span::styled(name, Style::default().fg(text_color)),
+                Span::styled(dir_suffix, Style::default().fg(if is_selected { COLOR_SELECTED_MARKER } else { COLOR_DIRECTORY_FIX })),
             ])),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
-            Cell::from(Span::styled(extension, Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled(extension, Style::default().fg(text_color))),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
-            Cell::from(Span::styled(child.size.clone(), Style::default().fg(if child.is_dir { COLOR_DIRECTORY } else { COLOR_FILE }))),
+            Cell::from(Span::styled(child.size.clone(), Style::default().fg(text_color))),
         ]));
     }
 
@@ -526,10 +547,14 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 8, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("Space - Select/deselect file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 9, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 10, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 10, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 11, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
