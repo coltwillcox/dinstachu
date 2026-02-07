@@ -13,6 +13,17 @@
 
 **Version 0.1.0** ▀▄▀▄ *Neon Dreams Edition*
 
+---
+
+> ⚠️ **WARNING: ALPHA SOFTWARE** ⚠️
+>
+> 🚧 *This is a work in progress!* 🚧
+>
+> Things **will** break. Features **may** eat your files. Use at your own risk.
+> Back up your data. Trust no one. Not even this README.
+>
+> *We're still soldering the circuits on this one, choom.* 🔧
+
 <img src="https://raw.githubusercontent.com/coltwillcox/fm84/master/images/screen-main-0.png" width="801">
 
 ---
