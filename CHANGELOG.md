@@ -6,6 +6,17 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.4.0] - 2026-02-08
+
+### ✨ Added
+- 💻 **F9 Terminal** — open external terminal window in current directory
+  - Uses `$TERMINAL` env var, falls back to common terminal emulators
+
+### 🛠️ Changed
+- Version constant now reads from `Cargo.toml` at compile time (`env!("CARGO_PKG_VERSION")`)
+
+---
+
 ## [0.3.2] - 2026-02-08
 
 ### 🛠️ Changed
