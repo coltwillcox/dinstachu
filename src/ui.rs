@@ -348,7 +348,6 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
         f.render_widget(line_number_para, chunks[0]);
 
         // Render content with cursor
-        let content_width = chunks[1].width as usize;
         let mut content_lines: Vec<Line> = Vec::new();
         for (idx, line) in editor_state.lines[start..end].iter().enumerate() {
             let actual_line_idx = start + idx;
@@ -502,7 +501,7 @@ fn render_fkey_bar(f: &mut ratatui::Frame<'_>, area: Rect) {
         .title_bottom(Line::from(Span::styled(" F6 Move ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F7 Create ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F8 Delete ", Style::default().fg(COLOR_TITLE))).centered())
-        .title_bottom(Line::from(Span::styled(" F9 ", Style::default().fg(COLOR_TITLE))).centered())
+        .title_bottom(Line::from(Span::styled(" F9 Terminal ", Style::default().fg(COLOR_TITLE))).centered())
         .title_bottom(Line::from(Span::styled(" F10 Quit ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::LEFT | Borders::BOTTOM | Borders::RIGHT)
         .border_style(Style::default().fg(COLOR_BORDER));
@@ -568,14 +567,18 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 9, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Space - Select/deselect file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("F9 - Open terminal").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 10, horizontal: 2 }),
     );
     f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new("Space - Select/deselect file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 11, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 12, horizontal: 2 }));
+    f.render_widget(
+        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 12, horizontal: 2 }),
+    );
+    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 13, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
