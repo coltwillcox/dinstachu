@@ -58,9 +58,13 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - **F3** 👁️ — View files with **syntax highlighting**
 - **F4** 📝 — Edit files (built-in editor, Ctrl+S to save)
 - **F5** 📋 — Copy to other panel
+- **F6** 📦 — Move to other panel
 - **F7** 📂 — Create new directories
 - **F8** 🗑️ — Delete files & folders (with confirmation)
+- **F9** 💻 — Open external terminal in current directory
 - **F10** 🚪 — Exit to the void
+- **Space** ✅ — Select/deselect files for batch operations
+- 🖱️ **Double-click** — open directories or view files
 
 ### 🎨 Viewer (F3)
 - 🌈 **Syntax highlighting** for Rust, Python, JS, TS, JSON, TOML, YAML, Markdown, Shell, C/C++, HTML, CSS
@@ -93,9 +97,12 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 | `F3` | View file |
 | `F4` | Edit file |
 | `F5` | Copy to other panel |
+| `F6` | Move to other panel |
 | `F7` | Create directory |
 | `F8` | Delete |
+| `F9` | Open terminal |
 | `F10` | Quit |
+| `Space` | Select/deselect file |
 
 ---
 
