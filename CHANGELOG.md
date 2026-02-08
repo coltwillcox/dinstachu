@@ -6,6 +6,14 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.3.2] - 2026-02-08
+
+### 🛠️ Changed
+- Display version number in title bar
+- Updated screenshot
+
+---
+
 ## [0.3.1] - 2026-02-07
 
 ### ✨ Added
