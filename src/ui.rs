@@ -597,8 +597,9 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
     f.render_widget(popup_block, popup_area);
 
     let inner = popup_area.inner(Margin { vertical: 2, horizontal: 2 });
+    let max_len = help_lines.iter().map(|l| l.len()).max().unwrap_or(0);
     let lines: Vec<Line> = help_lines.iter()
-        .map(|&text| Line::from(Span::styled(text, Style::default().fg(COLOR_TITLE))))
+        .map(|&text| Line::from(Span::styled(format!("{:<width$}", text, width = max_len), Style::default().fg(COLOR_TITLE))))
         .collect();
     let help_para = Paragraph::new(lines).alignment(Alignment::Center);
     f.render_widget(help_para, inner);
