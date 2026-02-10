@@ -552,7 +552,29 @@ fn render_error_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut Ap
 }
 
 fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
-    let popup_area = centered_rect(60, 60, area);
+    let help_lines = vec![
+        "F1 - This help",
+        "F2 - Rename folder/file",
+        "F3 - View file",
+        "F4 - Edit file (Ctrl+S/F2 save)",
+        "F5 - Copy to other panel",
+        "F6 - Move to other panel",
+        "F7 - Create directory",
+        "F8 - Delete folder/file",
+        "F9 - Open terminal",
+        "F10 - Quit",
+        "Space - Select/deselect file",
+        "Type to search, Esc to clear",
+    ];
+
+    // 2 border rows + 1 top padding + 1 bottom padding + content lines
+    let content_height = (help_lines.len() as u16) + 4;
+    let popup_height = content_height.min(area.height);
+    let popup_width = (area.width * 60 / 100).max(1);
+    let y = area.y + (area.height.saturating_sub(popup_height)) / 2;
+    let x = area.x + (area.width.saturating_sub(popup_width)) / 2;
+    let popup_area = Rect::new(x, y, popup_width, popup_height);
+
     let popup_block = Block::default()
         .title(Line::from(Span::styled(" Help/About ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::ALL)
@@ -561,54 +583,12 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
 
-    f.render_widget(
-        Paragraph::new("F1 - This help").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F2 - Rename folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F3 - View file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F4 - Edit file (Ctrl+S/F2 save)").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F5 - Copy to other panel").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F6 - Move to other panel").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 7, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F7 - Create directory").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 8, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F8 - Delete folder/file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 9, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("F9 - Open terminal").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 10, horizontal: 2 }),
-    );
-    f.render_widget(
-		Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-		popup_area.inner(Margin { vertical: 11, horizontal: 2 })
-	);
-    f.render_widget(
-        Paragraph::new("Space - Select/deselect file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 12, horizontal: 2 }),
-    );
-    f.render_widget(
-        Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 13, horizontal: 2 }),
-    );
+    let inner = popup_area.inner(Margin { vertical: 2, horizontal: 2 });
+    let lines: Vec<Line> = help_lines.iter()
+        .map(|&text| Line::from(Span::styled(text, Style::default().fg(COLOR_TITLE))))
+        .collect();
+    let help_para = Paragraph::new(lines).alignment(Alignment::Center);
+    f.render_widget(help_para, inner);
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
