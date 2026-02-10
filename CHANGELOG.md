@@ -6,6 +6,13 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.5.4] - 2026-02-10
+
+### ✨ Added
+- ⌨️ **Insert key selection** - Insert key toggles file selection like Space, without calculating directory size
+
+---
+
 ## [0.5.3] - 2026-02-10
 
 ### 🛠️ Fixed
