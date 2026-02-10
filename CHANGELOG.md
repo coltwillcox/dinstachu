@@ -6,6 +6,21 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.5.0] - 2026-02-10
+
+### ✨ Added
+- 🖼️ **Viewer/Editor borders** — F3 Viewer and F4 Editor now render with bordered frames and title bars
+- 🎨 **Editor syntax highlighting** — F4 Editor uses syntax highlighting with live re-highlighting on edits
+- 💾 **Unsaved changes prompt** — closing F4 Editor with unsaved changes shows a Save/Discard/Cancel dialog
+- 🖱️ **Mouse scroll in Viewer/Editor** — scroll wheel navigates content in F3 Viewer and F4 Editor
+
+### 🛠️ Changed
+- 👁️ **F3 Viewer** no longer uses syntax highlighting (plain text for faster viewing)
+- 📂 **Directory sizes persist** — calculated directory sizes stay visible after deselecting
+- 🎨 **Inactive panel path dimmed** — inactive panel's file path shown in a darker color
+
+---
+
 ## [0.4.0] - 2026-02-08
 
 ### ✨ Added

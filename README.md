@@ -11,7 +11,7 @@
 
 > 💜 *A synthwave-infused dual-pane TUI file manager, forged in Rust* 💜
 
-**Version 0.4.1** ▀▄▀▄ *Neon Dreams Edition*
+**Version 0.5.0** ▀▄▀▄ *Neon Dreams Edition*
 
 ---
 
@@ -55,8 +55,8 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 ### 📝 File Operations
 - **F1** 💡 — Help/About
 - **F2** ✏️ — Rename files & folders
-- **F3** 👁️ — View files with **syntax highlighting**
-- **F4** 📝 — Edit files (built-in editor, Ctrl+S to save)
+- **F3** 👁️ — View files (bordered, plain text)
+- **F4** 📝 — Edit files with **syntax highlighting** (Ctrl+S to save, unsaved changes prompt)
 - **F5** 📋 — Copy to other panel
 - **F6** 📦 — Move to other panel
 - **F7** 📂 — Create new directories
@@ -65,18 +65,27 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - **F10** 🚪 — Exit to the void
 - **Space** ✅ — Select/deselect files for batch operations
 - 🖱️ **Double-click** — open directories or view files
+- 🖱️ **Mouse scroll** — scroll content in Viewer, Editor, and file panels
 
 ### 🎨 Viewer (F3)
-- 🌈 **Syntax highlighting** for Rust, Python, JS, TS, JSON, TOML, YAML, Markdown, Shell, C/C++, HTML, CSS
+- 🖼️ **Bordered frame** with filename title bar
 - 📊 **Line numbers** in the gutter
 - 🔢 **Status bar** — filename, line count, file size, detected syntax
 - 🚫 **Binary detection** — won't melt your terminal with garbage
+- 🖱️ **Mouse scroll** — scroll through files with the scroll wheel
 
 ### ✍️ Editor (F4)
+- 🌈 **Syntax highlighting** for Rust, Python, JS, TS, JSON, TOML, YAML, Markdown, Shell, C/C++, HTML, CSS
+- 🖼️ **Bordered frame** with filename and modified indicator in title bar
 - 📄 **Full text editing** — cursor navigation, insert, delete
 - 💾 **Save** — F2 or Ctrl+S
 - 📍 **Line/Column tracking** — always know where you are
-- ⚠️ **Modified indicator** — never lose unsaved changes
+- ⚠️ **Unsaved changes prompt** — Save/Discard/Cancel dialog on close
+- 🖱️ **Mouse scroll** — navigate with the scroll wheel
+
+### 📂 Directory Sizes
+- 📏 **Calculated on select** — press Space on a directory to calculate its size
+- 📌 **Persistent display** — sizes stay visible after deselecting
 
 ---
 
@@ -103,6 +112,7 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 | `F9` | Open terminal |
 | `F10` | Quit |
 | `Space` | Select/deselect file |
+| `Scroll` | Scroll content (panels, Viewer, Editor) |
 
 ---
 
@@ -192,5 +202,5 @@ The color palette channels pure 80s energy:
 <p align="center">
   <strong>💜 FM84 💜</strong><br>
   <em>Where every file operation feels like a synth drop</em><br>
-  <code>▀▄▀▄▀▄ v0.4.1 ▄▀▄▀▄▀</code>
+  <code>▀▄▀▄▀▄ v0.5.0 ▄▀▄▀▄▀</code>
 </p>
