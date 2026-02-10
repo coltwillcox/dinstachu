@@ -185,12 +185,28 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                 MouseEventKind::Down(_btn) => {
                     handle_mouse_click(app_state, mouse_event.column, mouse_event.row);
                 }
-                MouseEventKind::ScrollDown => handle_move_selection(app_state, |state, len| {
-                    state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
-                }),
-                MouseEventKind::ScrollUp => handle_move_selection(app_state, |state, len| {
-                    state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
-                }),
+                MouseEventKind::ScrollDown => {
+                    if app_state.is_f3_displayed {
+                        app_state.viewer_scroll_down();
+                    } else if app_state.is_f4_displayed {
+                        app_state.editor_cursor_down();
+                    } else {
+                        handle_move_selection(app_state, |state, len| {
+                            state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                        });
+                    }
+                }
+                MouseEventKind::ScrollUp => {
+                    if app_state.is_f3_displayed {
+                        app_state.viewer_scroll_up();
+                    } else if app_state.is_f4_displayed {
+                        app_state.editor_cursor_up();
+                    } else {
+                        handle_move_selection(app_state, |state, len| {
+                            state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                        });
+                    }
+                }
                 MouseEventKind::ScrollLeft => app_state.is_left_active = true,
                 MouseEventKind::ScrollRight => app_state.is_left_active = false,
                 _ => (),
