@@ -51,10 +51,13 @@ pub struct AppState {
     pub last_click_pos: (u16, u16),
 }
 
+use ratatui::text::Span;
+
 #[derive(Clone)]
 pub struct EditorState {
     pub file_path: PathBuf,
     pub lines: Vec<String>,
+    pub highlighted_lines: Vec<Vec<Span<'static>>>,
     pub cursor_line: usize,
     pub cursor_col: usize,
     pub scroll_offset: usize,
@@ -348,14 +351,7 @@ impl AppState {
         use crate::viewer::load_file_content;
 
         match load_file_content(&file_path) {
-            Ok(mut state) => {
-                // Pre-highlight initial viewport
-                if !state.is_binary && !state.content_lines.is_empty() {
-                    state.highlighted_lines = crate::viewer::highlight_content(
-                        &state.content_lines,
-                        &state.syntax_name,
-                    );
-                }
+            Ok(state) => {
                 self.viewer_state = Some(state);
                 self.is_f3_displayed = true;
                 Ok(())
@@ -409,13 +405,18 @@ impl AppState {
     }
 
     pub fn open_editor(&mut self, file_path: PathBuf) -> Result<(), String> {
+        use crate::viewer::{detect_syntax, highlight_content};
+
         let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let lines = if lines.is_empty() { vec![String::new()] } else { lines };
+        let syntax_name = detect_syntax(&file_path);
+        let highlighted_lines = highlight_content(&lines, &syntax_name);
 
         self.editor_state = Some(EditorState {
             file_path,
             lines,
+            highlighted_lines,
             cursor_line: 0,
             cursor_col: 0,
             scroll_offset: 0,
@@ -428,6 +429,13 @@ impl AppState {
     pub fn close_editor(&mut self) {
         self.is_f4_displayed = false;
         self.editor_state = None;
+    }
+
+    pub fn editor_rehighlight(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let syntax_name = crate::viewer::detect_syntax(&state.file_path);
+            state.highlighted_lines = crate::viewer::highlight_content(&state.lines, &syntax_name);
+        }
     }
 
     pub fn editor_cursor_up(&mut self) {
@@ -529,9 +537,11 @@ impl AppState {
             state.cursor_col += 1;
             state.modified = true;
         }
+        self.editor_rehighlight();
     }
 
     pub fn editor_backspace(&mut self) {
+        let mut changed = false;
         if let Some(state) = &mut self.editor_state {
             if state.cursor_col > 0 {
                 let line = &mut state.lines[state.cursor_line];
@@ -540,6 +550,7 @@ impl AppState {
                 line.replace_range(byte_idx..end_idx, "");
                 state.cursor_col -= 1;
                 state.modified = true;
+                changed = true;
             } else if state.cursor_line > 0 {
                 // Join with previous line
                 let current_line = state.lines.remove(state.cursor_line);
@@ -547,14 +558,19 @@ impl AppState {
                 state.cursor_col = state.lines[state.cursor_line].chars().count();
                 state.lines[state.cursor_line].push_str(&current_line);
                 state.modified = true;
+                changed = true;
                 if state.cursor_line < state.scroll_offset {
                     state.scroll_offset = state.cursor_line;
                 }
             }
         }
+        if changed {
+            self.editor_rehighlight();
+        }
     }
 
     pub fn editor_delete(&mut self) {
+        let mut changed = false;
         if let Some(state) = &mut self.editor_state {
             let line_len = state.lines[state.cursor_line].chars().count();
             if state.cursor_col < line_len {
@@ -563,12 +579,17 @@ impl AppState {
                 let end_idx = line.char_indices().nth(state.cursor_col + 1).map(|(i, _)| i).unwrap_or(line.len());
                 line.replace_range(byte_idx..end_idx, "");
                 state.modified = true;
+                changed = true;
             } else if state.cursor_line < state.lines.len().saturating_sub(1) {
                 // Join with next line
                 let next_line = state.lines.remove(state.cursor_line + 1);
                 state.lines[state.cursor_line].push_str(&next_line);
                 state.modified = true;
+                changed = true;
             }
+        }
+        if changed {
+            self.editor_rehighlight();
         }
     }
 
@@ -586,6 +607,7 @@ impl AppState {
                 state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
             }
         }
+        self.editor_rehighlight();
     }
 
     pub fn editor_save(&mut self) -> Result<(), String> {

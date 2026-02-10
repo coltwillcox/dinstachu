@@ -303,18 +303,10 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
                 .style(Style::default().fg(COLOR_TITLE));
             f.render_widget(binary_msg, chunks[1]);
         } else {
-            let content_lines: Vec<Line> = if viewer_state.highlighted_lines.is_empty() {
-                // Fallback to plain text
-                viewer_state.content_lines[start..end]
-                    .iter()
-                    .map(|line| Line::from(Span::raw(line.clone())))
-                    .collect()
-            } else {
-                viewer_state.highlighted_lines[start..end]
-                    .iter()
-                    .map(|spans| Line::from(spans.clone()))
-                    .collect()
-            };
+            let content_lines: Vec<Line> = viewer_state.content_lines[start..end]
+                .iter()
+                .map(|line| Line::from(Span::raw(line.clone())))
+                .collect();
 
             let content_para =
                 Paragraph::new(content_lines).style(Style::default().fg(COLOR_FILE));
@@ -374,14 +366,15 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
             .style(Style::default().bg(ratatui::style::Color::Black));
         f.render_widget(line_number_para, chunks[0]);
 
-        // Render content with cursor
+        // Render content with cursor and syntax highlighting
+        let has_highlighting = !editor_state.highlighted_lines.is_empty();
         let mut content_lines: Vec<Line> = Vec::new();
         for (idx, line) in editor_state.lines[start..end].iter().enumerate() {
             let actual_line_idx = start + idx;
             let is_current_line = actual_line_idx == editor_state.cursor_line;
 
             if is_current_line {
-                // Show cursor on this line
+                // Show cursor on this line (plain text with cursor block)
                 let cursor_col = editor_state.cursor_col;
                 let chars: Vec<char> = line.chars().collect();
                 let before: String = chars[..cursor_col.min(chars.len())].iter().collect();
@@ -400,6 +393,8 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
                     ),
                     Span::styled(after, Style::default().fg(COLOR_FILE)),
                 ]));
+            } else if has_highlighting && actual_line_idx < editor_state.highlighted_lines.len() {
+                content_lines.push(Line::from(editor_state.highlighted_lines[actual_line_idx].clone()));
             } else {
                 content_lines.push(Line::from(Span::styled(
                     line.clone(),

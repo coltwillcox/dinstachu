@@ -3,14 +3,17 @@ use ratatui::text::Span;
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
 
+static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
+static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
+
 pub struct ViewerState {
     pub file_path: PathBuf,
     pub content_lines: Vec<String>,
-    pub highlighted_lines: Vec<Vec<Span<'static>>>,
     pub scroll_offset: usize,
     pub total_lines: usize,
     pub file_size: u64,
@@ -40,7 +43,6 @@ pub fn load_file_content(path: &PathBuf) -> Result<ViewerState, Error> {
         return Ok(ViewerState {
             file_path: path.clone(),
             content_lines: vec!["Binary file detected.".to_string()],
-            highlighted_lines: vec![],
             scroll_offset: 0,
             total_lines: 1,
             file_size: std::fs::metadata(path)?.len(),
@@ -59,7 +61,6 @@ pub fn load_file_content(path: &PathBuf) -> Result<ViewerState, Error> {
     Ok(ViewerState {
         file_path: path.clone(),
         content_lines: lines,
-        highlighted_lines: vec![],
         scroll_offset: 0,
         total_lines,
         file_size,
@@ -88,8 +89,8 @@ pub fn detect_syntax(path: &PathBuf) -> String {
 }
 
 pub fn highlight_content(content: &[String], syntax: &str) -> Vec<Vec<Span<'static>>> {
-    let ps = SyntaxSet::load_defaults_newlines();
-    let ts = ThemeSet::load_defaults();
+    let ps = SYNTAX_SET.get_or_init(|| SyntaxSet::load_defaults_newlines());
+    let ts = THEME_SET.get_or_init(|| ThemeSet::load_defaults());
 
     let syntax_def = ps
         .find_syntax_by_name(syntax)
