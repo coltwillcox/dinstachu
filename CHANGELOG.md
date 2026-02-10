@@ -6,6 +6,13 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.6.0] - 2026-02-10
+
+### ✨ Added
+- 🕐 **Modified column** - both panels now display last modification time in `DD/MM/YY HH:MM` format
+
+---
+
 ## [0.5.4] - 2026-02-10
 
 ### ✨ Added
