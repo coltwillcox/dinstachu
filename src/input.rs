@@ -173,7 +173,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                                 app_state.jump_to_next_match();
                             } else {
                                 handle_move_selection(app_state, |state, len| {
-                                    state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                                    state.select(state.selected().map_or(Some(0), |i| Some((i + 1).min(len.saturating_sub(1)))));
                                 });
                             }
                         }
@@ -181,8 +181,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                             if !app_state.search_input.is_empty() {
                                 app_state.jump_to_prev_match();
                             } else {
-                                handle_move_selection(app_state, |state, len| {
-                                    state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                                handle_move_selection(app_state, |state, _len| {
+                                    state.select(state.selected().map_or(Some(0), |i| Some(i.saturating_sub(1))));
                                 });
                             }
                         }
@@ -220,7 +220,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         app_state.editor_cursor_down();
                     } else {
                         handle_move_selection(app_state, |state, len| {
-                            state.select(state.selected().map_or(Some(0), |i| Some(if i >= len - 1 { 0 } else { i + 1 })));
+                            state.select(state.selected().map_or(Some(0), |i| Some((i + 1).min(len.saturating_sub(1)))));
                         });
                     }
                 }
@@ -230,8 +230,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                     } else if app_state.is_f4_displayed {
                         app_state.editor_cursor_up();
                     } else {
-                        handle_move_selection(app_state, |state, len| {
-                            state.select(state.selected().map_or(Some(len.saturating_sub(1)), |i| Some(if i == 0 { len - 1 } else { i - 1 })));
+                        handle_move_selection(app_state, |state, _len| {
+                            state.select(state.selected().map_or(Some(0), |i| Some(i.saturating_sub(1))));
                         });
                     }
                 }
