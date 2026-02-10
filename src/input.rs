@@ -157,6 +157,10 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                             // Space toggles selection and moves to next item
                             app_state.toggle_selection();
                         }
+                        KeyCode::Insert => {
+                            // Insert toggles selection without calculating directory size
+                            app_state.toggle_selection_no_size();
+                        }
                         KeyCode::Char(c) if c.is_alphanumeric() || ".-_".contains(c) => {
                             app_state.search_add_char(c);
                         }

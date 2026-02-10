@@ -640,6 +640,14 @@ impl AppState {
     }
 
     pub fn toggle_selection(&mut self) {
+        self.toggle_selection_inner(true);
+    }
+
+    pub fn toggle_selection_no_size(&mut self) {
+        self.toggle_selection_inner(false);
+    }
+
+    fn toggle_selection_inner(&mut self, calculate_size: bool) {
         use crate::fs_ops::calculate_dir_size;
 
         let mut error_msg: Option<String> = None;
@@ -663,7 +671,7 @@ impl AppState {
                         selected_set.insert(index);
 
                         // Calculate directory size when selecting
-                        if item.is_dir {
+                        if calculate_size && item.is_dir {
                             let mut full_path = current_dir.clone();
                             full_path.push(&item.name_full);
                             match calculate_dir_size(&full_path) {
