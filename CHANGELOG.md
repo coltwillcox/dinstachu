@@ -6,6 +6,16 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.7.0] - 2026-02-10
+
+### ✨ Added
+- 🚀 **Open files with default program** - Enter key and double-click on files opens them with the OS default application (`xdg-open`, `open`, `start`)
+
+### 🛠️ Changed
+- 🎨 **Syntax detection by extension** - Editor syntax highlighting now uses `find_syntax_by_extension` for more reliable language detection
+
+---
+
 ## [0.6.0] - 2026-02-10
 
 ### ✨ Added
