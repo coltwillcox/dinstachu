@@ -88,23 +88,13 @@ pub fn detect_syntax(path: &PathBuf) -> String {
     }
 }
 
-pub fn highlight_content(content: &[String], syntax: &str) -> Vec<Vec<Span<'static>>> {
+pub fn highlight_content(content: &[String], extension: &str) -> Vec<Vec<Span<'static>>> {
     let ps = SYNTAX_SET.get_or_init(|| SyntaxSet::load_defaults_newlines());
     let ts = THEME_SET.get_or_init(|| ThemeSet::load_defaults());
 
     let syntax_def = ps
-        .find_syntax_by_name(syntax)
-        .or_else(|| Some(ps.find_syntax_plain_text()));
-
-    if syntax_def.is_none() {
-        // Fallback to plain text spans
-        return content
-            .iter()
-            .map(|line| vec![Span::raw(line.clone())])
-            .collect();
-    }
-
-    let syntax_def = syntax_def.unwrap();
+        .find_syntax_by_extension(extension)
+        .unwrap_or_else(|| ps.find_syntax_plain_text());
     let mut h = HighlightLines::new(syntax_def, &ts.themes["base16-ocean.dark"]);
 
     let mut result = Vec::new();

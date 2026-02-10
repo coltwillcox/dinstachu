@@ -408,13 +408,13 @@ impl AppState {
     }
 
     pub fn open_editor(&mut self, file_path: PathBuf) -> Result<(), String> {
-        use crate::viewer::{detect_syntax, highlight_content};
+        use crate::viewer::highlight_content;
 
         let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let lines = if lines.is_empty() { vec![String::new()] } else { lines };
-        let syntax_name = detect_syntax(&file_path);
-        let highlighted_lines = highlight_content(&lines, &syntax_name);
+        let extension = file_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
+        let highlighted_lines = highlight_content(&lines, &extension);
 
         self.editor_state = Some(EditorState {
             file_path,
@@ -436,8 +436,8 @@ impl AppState {
 
     pub fn editor_rehighlight(&mut self) {
         if let Some(state) = &mut self.editor_state {
-            let syntax_name = crate::viewer::detect_syntax(&state.file_path);
-            state.highlighted_lines = crate::viewer::highlight_content(&state.lines, &syntax_name);
+            let extension = state.file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+            state.highlighted_lines = crate::viewer::highlight_content(&state.lines, extension);
         }
     }
 
