@@ -6,6 +6,15 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.5.3] - 2026-02-10
+
+### 🛠️ Fixed
+- 🖥️ **Small terminal crash** - program no longer crashes when terminal is resized too small
+- 🔄 **No wrap navigation** - Up/Down keys and mouse scroll no longer loop through the file list
+- 📐 **Help popup justified** - F1 Help lines are now uniform width
+
+---
+
 ## [0.5.2] - 2026-02-10
 
 ### 🛠️ Changed
