@@ -255,15 +255,28 @@ fn make_header_row() -> Row<'static> {
 
 fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -> usize {
     if let Some(viewer_state) = &app_state.viewer_state {
+        let filename = viewer_state.file_path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown");
+        let title = format!(" View: {} ", filename);
+
+        let border_block = Block::default()
+            .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(COLOR_BORDER));
+
+        let inner_area = border_block.inner(area);
+        f.render_widget(border_block, area);
+
         // Calculate line number gutter width
         let line_num_width = (viewer_state.total_lines.to_string().len() as u16).max(3) + 2;
 
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(line_num_width), Constraint::Min(0)])
-            .split(area);
+            .split(inner_area);
 
-        let viewport_height = area.height as usize;
+        let viewport_height = inner_area.height as usize;
         let start = viewer_state.scroll_offset;
         let end = (start + viewport_height).min(viewer_state.total_lines);
 
@@ -316,6 +329,20 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
 
 fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -> usize {
     if let Some(editor_state) = &app_state.editor_state {
+        let filename = editor_state.file_path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown");
+        let modified = if editor_state.modified { " [Modified]" } else { "" };
+        let title = format!(" Edit: {}{} ", filename, modified);
+
+        let border_block = Block::default()
+            .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(COLOR_BORDER));
+
+        let inner_area = border_block.inner(area);
+        f.render_widget(border_block, area);
+
         // Calculate line number gutter width
         let total_lines = editor_state.lines.len();
         let line_num_width = (total_lines.to_string().len() as u16).max(3) + 2;
@@ -323,9 +350,9 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(line_num_width), Constraint::Min(0)])
-            .split(area);
+            .split(inner_area);
 
-        let viewport_height = area.height as usize;
+        let viewport_height = inner_area.height as usize;
         let start = editor_state.scroll_offset;
         let end = (start + viewport_height).min(total_lines);
 
