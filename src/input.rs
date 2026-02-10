@@ -439,7 +439,18 @@ fn enter_directory_panel(app_state: &mut AppState) {
             }
             Err(e) => app_state.display_error(e.to_string()),
         }
-    } else if let Some(dir_new) = enter_subdir {
+    } else if let Some(item) = &selected_item {
+        if !item.is_dir {
+            let dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+            let file_path = dir.join(&item.name_full);
+            if let Err(e) = open_with_default(&file_path) {
+                app_state.display_error(format!("Cannot open file: {}", e));
+            }
+            return;
+        }
+    }
+
+    if let Some(dir_new) = enter_subdir {
         let result = load_directory_rows( &dir_new);
         match result {
             Ok(children_new) => {
@@ -456,6 +467,32 @@ fn enter_directory_panel(app_state: &mut AppState) {
             Err(e) => app_state.display_error(e.to_string()),
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn open_with_default(path: &std::path::Path) -> std::io::Result<()> {
+    Command::new("open").arg(path)
+        .stdout(Stdio::null()).stderr(Stdio::null())
+        .spawn()?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn open_with_default(path: &std::path::Path) -> std::io::Result<()> {
+    Command::new("cmd").args(["/C", "start", "", &path.to_string_lossy()])
+        .stdout(Stdio::null()).stderr(Stdio::null())
+        .spawn()?;
+    Ok(())
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn open_with_default(path: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+    Command::new("xdg-open").arg(path)
+        .stdout(Stdio::null()).stderr(Stdio::null())
+        .process_group(0)
+        .spawn()?;
+    Ok(())
 }
 
 fn toggle_delete(app_state: &mut AppState) {
@@ -1042,8 +1079,16 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
             } else {
                 &app_state.children_right
             };
-            if actual_index < children.len() && children[actual_index].is_dir {
-                enter_directory_panel(app_state);
+            if actual_index < children.len() {
+                if children[actual_index].is_dir {
+                    enter_directory_panel(app_state);
+                } else {
+                    let dir = if clicked_left { &app_state.dir_left } else { &app_state.dir_right };
+                    let file_path = dir.join(&children[actual_index].name_full);
+                    if let Err(e) = open_with_default(&file_path) {
+                        app_state.display_error(format!("Cannot open file: {}", e));
+                    }
+                }
             }
         }
     }
