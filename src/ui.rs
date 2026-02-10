@@ -21,6 +21,19 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
 
     let _ = terminal.draw(|f| {
         let area = f.area();
+
+        // Guard against terminal too small to render
+        if area.height < 10 || area.width < 30 {
+            let msg = Paragraph::new("Terminal too small")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(COLOR_TITLE));
+            let y = area.height / 2;
+            if y < area.height {
+                f.render_widget(msg, Rect::new(area.x, area.y + y, area.width, 1));
+            }
+            return;
+        }
+
         let chunks_main = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Length(1), Constraint::Percentage(100), Constraint::Length(1), Constraint::Length(3)])
@@ -135,7 +148,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     let separator_height = chunks[0].height;
     if app_state.cached_separator_height != separator_height {
         app_state.cached_separator_height = separator_height;
-        app_state.cached_separator = "│\n".repeat((separator_height - 1) as usize) + "│";
+        app_state.cached_separator = "│\n".repeat(separator_height.saturating_sub(1) as usize) + "│";
     }
     let separator_vertical = Paragraph::new(Text::raw(&app_state.cached_separator)).style(Style::default().fg(COLOR_BORDER));
     f.render_widget(separator_vertical, chunks[1]);
@@ -497,7 +510,7 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
                     .bg(COLOR_SELECTED_BACKGROUND),
             ),
             Span::styled(
-                "─".repeat(area.width as usize - search_text.len() - 5),
+                "─".repeat((area.width as usize).saturating_sub(search_text.len()).saturating_sub(5)),
                 Style::default().fg(COLOR_BORDER),
             ),
             Span::styled("┤", Style::default().fg(COLOR_BORDER)),
