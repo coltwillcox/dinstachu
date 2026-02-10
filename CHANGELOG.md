@@ -6,6 +6,14 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.5.1] - 2026-02-10
+
+### 🛠️ Fixed
+- 💻 **Detached terminal process** - F9 Terminal now spawns in its own process group, survives FM84 exit
+- 🔇 **Suppressed terminal output** - spawned terminal emulators no longer leak log messages to FM84
+
+---
+
 ## [0.5.0] - 2026-02-10
 
 ### ✨ Added
