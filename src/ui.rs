@@ -552,7 +552,7 @@ fn render_error_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut Ap
 }
 
 fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
-    let popup_area = centered_rect(60, 20, area);
+    let popup_area = centered_rect(60, 60, area);
     let popup_block = Block::default()
         .title(Line::from(Span::styled(" Help/About ", Style::default().fg(COLOR_TITLE))).centered())
         .borders(Borders::ALL)
@@ -598,14 +598,17 @@ fn render_help_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
         popup_area.inner(Margin { vertical: 10, horizontal: 2 }),
     );
     f.render_widget(
+		Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+		popup_area.inner(Margin { vertical: 11, horizontal: 2 })
+	);
+    f.render_widget(
         Paragraph::new("Space - Select/deselect file").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 11, horizontal: 2 }),
+        popup_area.inner(Margin { vertical: 12, horizontal: 2 }),
     );
     f.render_widget(
         Paragraph::new("Type to search, Esc to clear").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
-        popup_area.inner(Margin { vertical: 12, horizontal: 2 }),
+        popup_area.inner(Margin { vertical: 13, horizontal: 2 }),
     );
-    f.render_widget(Paragraph::new("F10 - Quit").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 13, horizontal: 2 }));
 }
 
 fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
