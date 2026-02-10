@@ -632,40 +632,63 @@ fn handle_f4_edit(app_state: &mut AppState) {
 
 fn open_terminal(app_state: &mut AppState) {
     let dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
-
-    let result = if cfg!(target_os = "macos") {
-        Command::new("open").arg("-a").arg("Terminal").arg(dir)
-            .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
-    } else if cfg!(target_os = "windows") {
-        Command::new("cmd").args(["/C", "start", "cmd"]).current_dir(dir)
-            .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
-    } else {
-        // Linux: use $TERMINAL env var, then try common terminal emulators.
-        if let Ok(term) = std::env::var("TERMINAL") {
-            Command::new(&term).current_dir(dir)
-                .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
-        } else {
-			let emulators = [
-				"xdg-terminal-emulator",
-				"alacritty",
-				"kitty",
-				"foot",
-				"gnome-terminal",
-				"konsole",
-				"xfce4-terminal",
-				"xterm",
-			];
-            emulators
-                .iter()
-                .find_map(|emu| Command::new(emu).current_dir(dir)
-                    .stdout(Stdio::null()).stderr(Stdio::null()).spawn().ok())
-                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "No terminal emulator found. Set $TERMINAL."))
-        }
-    };
-
+    let result = spawn_detached_terminal(dir);
     if let Err(e) = result {
         app_state.display_error(format!("Cannot open terminal: {}", e));
     }
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_detached_terminal(dir: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+    Command::new("open").arg("-a").arg("Terminal").arg(dir)
+        .stdout(Stdio::null()).stderr(Stdio::null())
+        .process_group(0)
+        .spawn()?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn spawn_detached_terminal(dir: &std::path::Path) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+    Command::new("cmd").args(["/C", "start", "cmd"]).current_dir(dir)
+        .stdout(Stdio::null()).stderr(Stdio::null())
+        .creation_flags(CREATE_NEW_PROCESS_GROUP)
+        .spawn()?;
+    Ok(())
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+fn spawn_detached_terminal(dir: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+    if let Ok(term) = std::env::var("TERMINAL") {
+        Command::new(&term).current_dir(dir)
+            .stdout(Stdio::null()).stderr(Stdio::null())
+            .process_group(0)
+            .spawn()?;
+        return Ok(());
+    }
+    let emulators = [
+        "xdg-terminal-emulator",
+        "alacritty",
+        "kitty",
+        "foot",
+        "gnome-terminal",
+        "konsole",
+        "xfce4-terminal",
+        "xterm",
+    ];
+    for emu in &emulators {
+        if Command::new(emu).current_dir(dir)
+            .stdout(Stdio::null()).stderr(Stdio::null())
+            .process_group(0)
+            .spawn().is_ok()
+        {
+            return Ok(());
+        }
+    }
+    Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No terminal emulator found. Set $TERMINAL."))
 }
 
 fn toggle_copy(app_state: &mut AppState) {
