@@ -217,8 +217,8 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
             file_color
         };
 
-        // Get size - for selected directories, show calculated size if available
-        let size = if child.is_dir && is_selected && child.name != ".." {
+        // Get size - for directories, show calculated size if available
+        let size = if child.is_dir && child.name != ".." {
             let mut full_path = current_dir.clone();
             full_path.push(&child.name_full);
             if let Some(&calculated_size) = app_state.dir_sizes.get(&full_path) {
