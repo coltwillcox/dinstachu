@@ -26,7 +26,9 @@
 >
 > *We're still soldering the circuits on this one, choom.* 🔧
 
+<div align="center">
 <img src="https://raw.githubusercontent.com/coltwillcox/fm84/master/images/screen-main-0.png" width="801">
+</div>
 
 ---
 
@@ -169,12 +171,14 @@ tar -xzf fm84-v*.tar.gz
 
 ## 🌃 Aesthetic
 
-```
-    ╔══════════════════════════════════════╗
-    ║  VIOLET DREAMS • PURPLE HAZE • NEON  ║
-    ║    ▓▓▓▓▓ SYNTHWAVE FOREVER ▓▓▓▓▓     ║
-    ╚══════════════════════════════════════╝
-```
+<div align="center">
+<pre>
+╔══════════════════════════════════════╗
+║  VIOLET DREAMS • PURPLE HAZE • NEON  ║
+║    ▓▓▓▓▓ SYNTHWAVE FOREVER ▓▓▓▓▓     ║
+╚══════════════════════════════════════╝
+</pre>
+</div>
 
 The color palette channels pure 80s energy:
 - 💜 **Violet borders** - `#743AD5`
