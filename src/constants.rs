@@ -5,7 +5,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const ICON_FOLDER: &str = " "; // Added space after icon is workaround for small icons bug in table columns
 pub const ICON_FILE: &str = " ";
-pub const ICON_LOGO: &str = "󱐌";
+pub const ICON_LOGO: &str = " ";
 
 // Default synthwave color palette
 pub const COLOR_BORDER: Color = Color::Rgb(116, 58, 213);                    // Violet
