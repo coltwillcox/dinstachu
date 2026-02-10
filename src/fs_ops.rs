@@ -1,5 +1,6 @@
 use crate::app::Item;
 use crate::utils::format_size;
+use chrono::Local;
 use std::env;
 use std::fs::{self, DirEntry, File, create_dir, read_dir, remove_dir_all, remove_file, rename};
 use std::io::{Error, Read, Write};
@@ -41,6 +42,7 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
             extension: "".to_string(),
             is_dir: true,
             size: "".to_string(),
+            modified: "".to_string(),
         });
     }
 
@@ -50,7 +52,15 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
         let name_full = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let name = if is_dir { name_full.clone() } else { path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string() };
         let extension = if is_dir { "".to_string() } else { path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string() };
-        let size = if is_dir { "<DIR>".to_string() } else { format_size(entry.metadata().ok().map(|m| m.len()).unwrap_or(0)) };
+        let metadata = entry.metadata().ok();
+        let size = if is_dir { "<DIR>".to_string() } else { format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0)) };
+        let modified = metadata.as_ref()
+            .and_then(|m| m.modified().ok())
+            .map(|t| {
+                let dt: chrono::DateTime<Local> = t.into();
+                dt.format("%d/%m/%y %H:%M").to_string()
+            })
+            .unwrap_or_default();
 
         children.push(Item {
             name_full: name_full.clone(),
@@ -58,6 +68,7 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
             extension: extension.clone(),
             is_dir,
             size: size.clone(),
+            modified,
         });
     }
 

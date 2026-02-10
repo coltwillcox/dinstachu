@@ -108,7 +108,7 @@ fn render_path_bar(f: &mut ratatui::Frame<'_>, area: Rect, dir_left: &PathBuf, d
 fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut AppState) -> u16 {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)]).split(chunk);
 
-    let widths = [Constraint::Length(2), Constraint::Percentage(70), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Percentage(15)];
+    let widths = [Constraint::Length(2), Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(10), Constraint::Length(1), Constraint::Percentage(15), Constraint::Length(1), Constraint::Length(15)];
 
     let is_f2_displayed = app_state.is_f2_displayed;
     let table_style = |active: bool| {
@@ -254,6 +254,8 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
             Cell::from(Span::styled(extension, Style::default().fg(text_color))),
             Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
             Cell::from(Span::styled(size, Style::default().fg(text_color))),
+            Cell::from(Span::styled("│", Style::default().fg(COLOR_BORDER))),
+            Cell::from(Span::styled(child.modified.clone(), Style::default().fg(text_color))),
         ]));
     }
 
@@ -268,6 +270,8 @@ fn make_header_row() -> Row<'static> {
         Cell::from(Span::styled("Ext", Style::default().fg(COLOR_COLUMNS))),
         Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
         Cell::from(Span::styled("Size", Style::default().fg(COLOR_COLUMNS))),
+        Cell::from(Span::styled("", Style::default().fg(COLOR_COLUMNS))),
+        Cell::from(Span::styled("Modified", Style::default().fg(COLOR_COLUMNS))),
     ])
 }
 
