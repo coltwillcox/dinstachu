@@ -54,13 +54,35 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::End => app_state.viewer_end(),
                         _ => {}
                     }
+                } else if app_state.is_editor_save_prompt {
+                    match key.code {
+                        KeyCode::Char('y') | KeyCode::Char('Y') => {
+                            // Save and close
+                            if let Err(e) = app_state.editor_save() {
+                                app_state.display_error(e);
+                            }
+                            app_state.is_editor_save_prompt = false;
+                            app_state.close_editor();
+                        }
+                        KeyCode::Char('n') | KeyCode::Char('N') => {
+                            // Discard and close
+                            app_state.is_editor_save_prompt = false;
+                            app_state.close_editor();
+                        }
+                        KeyCode::Esc => {
+                            // Cancel, return to editor
+                            app_state.is_editor_save_prompt = false;
+                        }
+                        _ => {}
+                    }
                 } else if app_state.is_f4_displayed {
                     match key.code {
-                        KeyCode::Esc => {
+                        KeyCode::Esc | KeyCode::F(4) => {
                             if app_state.editor_is_modified() {
-                                // TODO: Add confirmation dialog for unsaved changes
+                                app_state.is_editor_save_prompt = true;
+                            } else {
+                                app_state.close_editor();
                             }
-                            app_state.close_editor();
                         }
                         KeyCode::F(2) => {
                             // Save file
@@ -68,7 +90,6 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                                 app_state.display_error(e);
                             }
                         }
-                        KeyCode::F(4) => app_state.close_editor(),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Up => app_state.editor_cursor_up(),
                         KeyCode::Down => app_state.editor_cursor_down(),

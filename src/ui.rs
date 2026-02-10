@@ -40,6 +40,8 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
 
         if app_state.is_error_displayed {
             render_error_popup(f, area, app_state);
+        } else if app_state.is_editor_save_prompt {
+            render_editor_save_popup(f, area);
         } else if app_state.is_f1_displayed {
             render_help_popup(f, area);
         } else if app_state.is_f5_displayed {
@@ -723,6 +725,27 @@ fn render_move_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppStat
     f.render_widget(
         Paragraph::new("Y / Enter - Yes    N / Esc - No").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
         popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
+    );
+}
+
+fn render_editor_save_popup(f: &mut ratatui::Frame<'_>, area: Rect) {
+    let popup_area = centered_rect(60, 25, area);
+    let popup_block = Block::default()
+        .title(Line::from(Span::styled(" Unsaved Changes ", Style::default().fg(COLOR_TITLE))).centered())
+        .borders(Borders::ALL)
+        .style(Style::default().fg(COLOR_BORDER));
+
+    f.render_widget(Clear::default(), popup_area);
+    f.render_widget(popup_block, popup_area);
+
+    f.render_widget(
+        Paragraph::new("Save changes before closing?").alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
+    );
+
+    f.render_widget(
+        Paragraph::new("Y - Save    N - Discard    Esc - Cancel").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
+        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
     );
 }
 

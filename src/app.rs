@@ -49,6 +49,7 @@ pub struct AppState {
     pub dir_sizes: HashMap<PathBuf, u64>,
     pub last_click_time: Option<Instant>,
     pub last_click_pos: (u16, u16),
+    pub is_editor_save_prompt: bool,
 }
 
 use ratatui::text::Span;
@@ -136,6 +137,7 @@ impl AppState {
             dir_sizes: HashMap::new(),
             last_click_time: None,
             last_click_pos: (0, 0),
+            is_editor_save_prompt: false,
         }
     }
 
