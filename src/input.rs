@@ -22,6 +22,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::Right => app_state.move_cursor_right(),
                         _ => {}
                     }
+                } else if app_state.is_f1_displayed {
+                    match key.code {
+                        KeyCode::Esc => handle_esc(app_state),
+                        KeyCode::F(1) => toggle_help(app_state),
+                        KeyCode::F(10) => return Ok(false),
+                        _ => {}
+                    }
                 } else if app_state.is_f8_displayed {
                     match key.code {
                         KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => handle_esc(app_state),
@@ -135,7 +142,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                             app_state.search_clear();
                             handle_esc(app_state);
                         }
-                        KeyCode::F(1) => app_state.is_f1_displayed = !app_state.is_f1_displayed,
+                        KeyCode::F(1) => toggle_help(app_state),
                         KeyCode::F(2) => toggle_rename(app_state),
                         KeyCode::F(3) => handle_f3_view(app_state),
                         KeyCode::F(4) => handle_f4_edit(app_state),
@@ -236,6 +243,13 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
         }
     }
     Ok(true)
+}
+
+fn toggle_help(app_state: &mut AppState) {
+    if app_state.is_error_displayed {
+        return;
+    }
+    app_state.is_f1_displayed = !app_state.is_f1_displayed;
 }
 
 fn toggle_rename(app_state: &mut AppState) {
