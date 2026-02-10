@@ -9,22 +9,22 @@ All notable changes to FM84 will be documented in this file.
 ## [0.5.0] - 2026-02-10
 
 ### ✨ Added
-- 🖼️ **Viewer/Editor borders** — F3 Viewer and F4 Editor now render with bordered frames and title bars
-- 🎨 **Editor syntax highlighting** — F4 Editor uses syntax highlighting with live re-highlighting on edits
-- 💾 **Unsaved changes prompt** — closing F4 Editor with unsaved changes shows a Save/Discard/Cancel dialog
-- 🖱️ **Mouse scroll in Viewer/Editor** — scroll wheel navigates content in F3 Viewer and F4 Editor
+- 🖼️ **Viewer/Editor borders** - F3 Viewer and F4 Editor now render with bordered frames and title bars
+- 🎨 **Editor syntax highlighting** - F4 Editor uses syntax highlighting with live re-highlighting on edits
+- 💾 **Unsaved changes prompt** - closing F4 Editor with unsaved changes shows a Save/Discard/Cancel dialog
+- 🖱️ **Mouse scroll in Viewer/Editor** - scroll wheel navigates content in F3 Viewer and F4 Editor
 
 ### 🛠️ Changed
 - 👁️ **F3 Viewer** no longer uses syntax highlighting (plain text for faster viewing)
-- 📂 **Directory sizes persist** — calculated directory sizes stay visible after deselecting
-- 🎨 **Inactive panel path dimmed** — inactive panel's file path shown in a darker color
+- 📂 **Directory sizes persist** - calculated directory sizes stay visible after deselecting
+- 🎨 **Inactive panel path dimmed** - inactive panel's file path shown in a darker color
 
 ---
 
 ## [0.4.0] - 2026-02-08
 
 ### ✨ Added
-- 💻 **F9 Terminal** — open external terminal window in current directory
+- 💻 **F9 Terminal** - open external terminal window in current directory
   - Uses `$TERMINAL` env var, falls back to common terminal emulators
 
 ### 🛠️ Changed
@@ -43,13 +43,13 @@ All notable changes to FM84 will be documented in this file.
 ## [0.3.1] - 2026-02-07
 
 ### ✨ Added
-- 📦 **F6 Move** — move files and directories to the other panel
+- 📦 **F6 Move** - move files and directories to the other panel
   - Cross-filesystem support (copy + delete fallback)
-- 🖱️ **Double-click** — open directories or view files with double-click
-- ✅ **Multiple selection** — select multiple files for batch operations
-- 📏 **Directory size** — show calculated size for selected directories
-- 🎨 **File type colors** — files colored by extension for easy visual distinction
-- 📂 **Sort by extension** — files ordered by extension by default
+- 🖱️ **Double-click** - open directories or view files with double-click
+- ✅ **Multiple selection** - select multiple files for batch operations
+- 📏 **Directory size** - show calculated size for selected directories
+- 🎨 **File type colors** - files colored by extension for easy visual distinction
+- 📂 **Sort by extension** - files ordered by extension by default
 
 ### 🛠️ Fixed
 - Cross-filesystem copy/move operations
@@ -62,7 +62,7 @@ All notable changes to FM84 will be documented in this file.
 ## [0.2.0] - 2025-02-07
 
 ### ✨ Added
-- 📋 **F5 Copy** — copy files and directories to the other panel
+- 📋 **F5 Copy** - copy files and directories to the other panel
   - Recursive directory copying
   - Confirmation dialog with destination path
   - Duplicate detection
@@ -79,28 +79,28 @@ All notable changes to FM84 will be documented in this file.
 ## [0.1.0] - 2025-02-07
 
 ### ✨ Added
-- 📁 **Dual-pane file manager** — navigate with style
-- ⌨️ **Keyboard navigation** — Arrow keys, Home/End, PageUp/PageDown
-- 🔀 **Tab switching** — flip between panels like cassettes
-- ↩️ **Enter/Backspace** — dive into directories, ascend to parent
-- 🔍 **Quick search** — type-ahead filtering with Up/Down navigation
-- 💡 **F1 Help** — in-app help popup
-- ✏️ **F2 Rename** — rename files and folders
-- 👁️ **F3 View** — file viewer with syntax highlighting
+- 📁 **Dual-pane file manager** - navigate with style
+- ⌨️ **Keyboard navigation** - Arrow keys, Home/End, PageUp/PageDown
+- 🔀 **Tab switching** - flip between panels like cassettes
+- ↩️ **Enter/Backspace** - dive into directories, ascend to parent
+- 🔍 **Quick search** - type-ahead filtering with Up/Down navigation
+- 💡 **F1 Help** - in-app help popup
+- ✏️ **F2 Rename** - rename files and folders
+- 👁️ **F3 View** - file viewer with syntax highlighting
   - Support for Rust, Python, JS, TS, JSON, TOML, YAML, Markdown, Shell, C/C++, HTML, CSS
   - Line numbers in gutter
   - Binary file detection
-- 📝 **F4 Edit** — built-in text editor
+- 📝 **F4 Edit** - built-in text editor
   - Full cursor navigation
   - Insert, delete, backspace
   - F2/Ctrl+S to save
   - Modified indicator
-- 📂 **F7 Create** — create new directories
-- 🗑️ **F8 Delete** — delete files and folders with confirmation
-- 🚪 **F10 Quit** — exit to the void
-- 🎨 **Synthwave aesthetic** — violet borders, purple selections, magenta directories
-- 🕐 **Live clock** — retro vibes in the header
-- 📀 **GitHub Actions release workflow** — cross-platform binaries
+- 📂 **F7 Create** - create new directories
+- 🗑️ **F8 Delete** - delete files and folders with confirmation
+- 🚪 **F10 Quit** - exit to the void
+- 🎨 **Synthwave aesthetic** - violet borders, purple selections, magenta directories
+- 🕐 **Live clock** - retro vibes in the header
+- 📀 **GitHub Actions release workflow** - cross-platform binaries
 
 ---
 
