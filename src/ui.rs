@@ -27,7 +27,7 @@ pub fn render_ui<B: Backend>(terminal: &mut Terminal<B>, app_state: &mut AppStat
             .split(area);
 
         render_top_panel(f, chunks_main[0], &app_state.cached_clock);
-        render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width);
+        render_path_bar(f, chunks_main[1], &app_state.dir_left, &app_state.dir_right, area.width, app_state.is_left_active);
         if app_state.is_f3_displayed {
             app_state.viewer_viewport_height = render_viewer(f, chunks_main[2], app_state);
         } else if app_state.is_f4_displayed {
@@ -71,18 +71,21 @@ fn render_top_panel(f: &mut ratatui::Frame<'_>, area: Rect, cached_clock: &str) 
     f.render_widget(block_top, area);
 }
 
-fn render_path_bar(f: &mut ratatui::Frame<'_>, area: Rect, dir_left: &PathBuf, dir_right: &PathBuf, total_width: u16) {
+fn render_path_bar(f: &mut ratatui::Frame<'_>, area: Rect, dir_left: &PathBuf, dir_right: &PathBuf, total_width: u16, is_left_active: bool) {
     let length_left = ((total_width as usize).saturating_sub(3)) / 2;
     let length_right = ((total_width as usize).saturating_sub(2)) / 2;
 
     let path_left = limit_path_string(dir_left, length_left.saturating_sub(8));
     let path_right = limit_path_string(dir_right, length_right.saturating_sub(8));
 
+    let color_left = if is_left_active { COLOR_DIRECTORY } else { COLOR_DIRECTORY_DARK };
+    let color_right = if is_left_active { COLOR_DIRECTORY_DARK } else { COLOR_DIRECTORY };
+
     let border_line = vec![
         Span::styled(format!("{}", "├──"), Style::default().fg(COLOR_BORDER)),
-        Span::styled(format!(" {} ", path_left), Style::default().fg(COLOR_DIRECTORY)),
+        Span::styled(format!(" {} ", path_left), Style::default().fg(color_left)),
         Span::styled(format!("{}{}", "─".repeat(length_left.saturating_sub(path_left.len().saturating_add(5))), "─┬──"), Style::default().fg(COLOR_BORDER)),
-        Span::styled(format!(" {} ", path_right), Style::default().fg(COLOR_DIRECTORY)),
+        Span::styled(format!(" {} ", path_right), Style::default().fg(color_right)),
         Span::styled(format!("{}{}", "─".repeat(length_right.saturating_sub(path_right.len().saturating_add(5))), "─┤"), Style::default().fg(COLOR_BORDER)),
     ];
 

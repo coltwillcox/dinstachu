@@ -11,6 +11,7 @@ pub const ICON_LOGO: &str = "󱐌";
 pub const COLOR_BORDER: Color = Color::Rgb(116, 58, 213);                    // Violet
 pub const COLOR_COLUMNS: Color = Color::Rgb(0, 255, 255);                    // Cyan
 pub const COLOR_DIRECTORY: Color = Color::Rgb(255, 0, 255);                  // Magenta
+pub const COLOR_DIRECTORY_DARK: Color = Color::Rgb(150, 0, 150);             // Dark magenta
 pub const COLOR_DIRECTORY_FIX: Color = Color::Rgb(255, 0, 255);              // Magenta
 pub const COLOR_FILE: Color = Color::Rgb(114, 137, 218);                     // Soft purple/blue
 pub const COLOR_RENAME_BACKGROUND: Color = Color::Rgb(255, 0, 128);          // Hot pink
