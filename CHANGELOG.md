@@ -6,6 +6,14 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.5.2] - 2026-02-10
+
+### 🛠️ Changed
+- 🎨 **Updated logo** - new ASCII art logo in README
+- 📸 **Updated screenshot** - refreshed main screenshot
+
+---
+
 ## [0.5.1] - 2026-02-10
 
 ### 🛠️ Fixed
