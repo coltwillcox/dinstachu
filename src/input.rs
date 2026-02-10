@@ -3,7 +3,7 @@ use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_row
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
@@ -634,13 +634,16 @@ fn open_terminal(app_state: &mut AppState) {
     let dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
 
     let result = if cfg!(target_os = "macos") {
-        Command::new("open").arg("-a").arg("Terminal").arg(dir).spawn()
+        Command::new("open").arg("-a").arg("Terminal").arg(dir)
+            .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
     } else if cfg!(target_os = "windows") {
-        Command::new("cmd").args(["/C", "start", "cmd"]).current_dir(dir).spawn()
+        Command::new("cmd").args(["/C", "start", "cmd"]).current_dir(dir)
+            .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
     } else {
         // Linux: use $TERMINAL env var, then try common terminal emulators.
         if let Ok(term) = std::env::var("TERMINAL") {
-            Command::new(&term).current_dir(dir).spawn()
+            Command::new(&term).current_dir(dir)
+                .stdout(Stdio::null()).stderr(Stdio::null()).spawn()
         } else {
 			let emulators = [
 				"xdg-terminal-emulator",
@@ -654,7 +657,8 @@ fn open_terminal(app_state: &mut AppState) {
 			];
             emulators
                 .iter()
-                .find_map(|emu| Command::new(emu).current_dir(dir).spawn().ok())
+                .find_map(|emu| Command::new(emu).current_dir(dir)
+                    .stdout(Stdio::null()).stderr(Stdio::null()).spawn().ok())
                 .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "No terminal emulator found. Set $TERMINAL."))
         }
     };
