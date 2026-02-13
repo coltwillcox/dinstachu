@@ -6,6 +6,19 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.8.1] - 2026-02-13
+
+### 🛠️ Changed
+- **Eliminated O(N log N) stat syscalls during directory sort** - items are now built first with metadata, then sorted on pre-computed fields instead of calling `is_dir()` on each comparison
+- **Single metadata call per directory entry** - previously called both `path.is_dir()` and `entry.metadata()` separately (two stat syscalls each); now one call provides `is_dir`, size, and modified time
+- **Zero-copy file transfers on Linux** - replaced manual 64KB buffer loop with `io::copy` which uses `copy_file_range` in kernel space for File-to-File transfers
+- **Faster directory size calculation** - uses `entry.file_type()` (readdir's `d_type` field) instead of stat syscall per entry
+- **Pre-allocated vectors** throughout codebase to reduce heap reallocations
+- **Removed unnecessary string clones** in directory listing and viewer
+- **Idiomatic `&Path` signatures** instead of `&PathBuf` in public and internal APIs
+
+---
+
 ## [0.8.0] - 2026-02-13
 
 ### ✨ Added
