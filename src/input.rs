@@ -150,7 +150,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(5) => toggle_copy(app_state),
                         KeyCode::F(6) => toggle_move(app_state),
                         KeyCode::F(7) => toggle_create(app_state),
-                        KeyCode::F(8) => toggle_delete(app_state),
+                        KeyCode::F(8) | KeyCode::Delete => toggle_delete(app_state),
                         KeyCode::F(9) => open_terminal(app_state),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Char('q') => return Ok(false), // Temp debug
