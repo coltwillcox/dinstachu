@@ -223,7 +223,11 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
             }
             Event::Mouse(mouse_event) => match mouse_event.kind {
                 MouseEventKind::Down(_btn) => {
-                    handle_mouse_click(app_state, mouse_event.column, mouse_event.row);
+                    if app_state.is_f4_displayed {
+                        handle_editor_click(app_state, mouse_event.column, mouse_event.row);
+                    } else {
+                        handle_mouse_click(app_state, mouse_event.column, mouse_event.row);
+                    }
                 }
                 MouseEventKind::ScrollDown => {
                     if app_state.is_f3_displayed {
@@ -1087,5 +1091,49 @@ fn handle_mouse_click(app_state: &mut AppState, column: u16, row: u16) {
                 }
             }
         }
+    }
+}
+
+fn handle_editor_click(app_state: &mut AppState, column: u16, row: u16) {
+    let (term_width, term_height) = crossterm::terminal::size().unwrap_or((80, 24));
+
+    if let Some(state) = &mut app_state.editor_state {
+        // Editor area matches chunks_main[2] from render_ui layout:
+        // top panel (3) + path bar (1) = 4, plus 1 for border
+        let editor_top = 5u16;
+        // bottom panel (1) + fkey bar (3) = 4, plus 1 for border
+        let editor_bottom = term_height.saturating_sub(5);
+
+        let total_lines = state.lines.len();
+        let line_num_width = (total_lines.to_string().len() as u16).max(3) + 2;
+        // left border (1) + gutter
+        let content_left = 1 + line_num_width;
+        // right border
+        let content_right = term_width.saturating_sub(1);
+
+        if row < editor_top || row >= editor_bottom || column < content_left || column >= content_right {
+            return;
+        }
+
+        // Map to line
+        let visual_row = (row - editor_top) as usize;
+        let target_line = (state.scroll_offset + visual_row).min(total_lines.saturating_sub(1));
+
+        // Map visual column to char column (accounting for horizontal scroll and tabs)
+        let visual_col = (column - content_left) as usize + state.horizontal_offset;
+        let line = &state.lines[target_line];
+        let mut char_col = 0;
+        let mut current_visual = 0;
+        for ch in line.chars() {
+            if current_visual >= visual_col {
+                break;
+            }
+            current_visual += if ch == '\t' { 4 } else { 1 };
+            char_col += 1;
+        }
+
+        state.cursor_line = target_line;
+        state.cursor_col = char_col;
+        state.auto_scroll = true;
     }
 }
