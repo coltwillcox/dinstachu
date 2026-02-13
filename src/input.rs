@@ -19,6 +19,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::Enter => handle_rename(app_state),
                         KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
                         KeyCode::Backspace => app_state.delete_char(),
+                        KeyCode::Delete => app_state.delete_char_forward(),
                         KeyCode::Left => app_state.move_cursor_left(),
                         KeyCode::Right => app_state.move_cursor_right(),
                         _ => {}
@@ -45,6 +46,7 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::Enter => handle_create_confirm(app_state),
                         KeyCode::Char(to_insert) => app_state.create_enter_char(to_insert),
                         KeyCode::Backspace => app_state.create_delete_char(),
+                        KeyCode::Delete => app_state.create_delete_char_forward(),
                         KeyCode::Left => app_state.create_move_cursor_left(),
                         KeyCode::Right => app_state.create_move_cursor_right(),
                         _ => {}

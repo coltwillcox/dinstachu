@@ -173,6 +173,16 @@ impl AppState {
         }
     }
 
+    pub fn delete_char_forward(&mut self) {
+        let len = self.rename_input.chars().count();
+        if self.rename_character_index < len {
+            let current_index = self.rename_character_index;
+            let before = self.rename_input.chars().take(current_index);
+            let after = self.rename_input.chars().skip(current_index + 1);
+            self.rename_input = before.chain(after).collect();
+        }
+    }
+
     pub fn reset_cursor(&mut self) {
         self.rename_character_index = 0;
     }
@@ -232,6 +242,16 @@ impl AppState {
             let after_char_to_delete = self.create_input.chars().skip(current_index);
             self.create_input = before_char_to_delete.chain(after_char_to_delete).collect();
             self.create_move_cursor_left();
+        }
+    }
+
+    pub fn create_delete_char_forward(&mut self) {
+        let len = self.create_input.chars().count();
+        if self.create_character_index < len {
+            let current_index = self.create_character_index;
+            let before = self.create_input.chars().take(current_index);
+            let after = self.create_input.chars().skip(current_index + 1);
+            self.create_input = before.chain(after).collect();
         }
     }
 
