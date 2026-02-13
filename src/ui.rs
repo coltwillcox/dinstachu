@@ -522,46 +522,47 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
         f.render_widget(Paragraph::new(Line::from(search_line)), area);
     } else {
         // Show panel stats: selected/total files and selected/total size
-        let panel_stat = |children: &[crate::app::Item], selected_set: &std::collections::HashSet<usize>, current_dir: &PathBuf, dir_sizes: &std::collections::HashMap<PathBuf, u64>| -> String {
-			// Count files (exclude "..")
-            let total_count = children.iter().filter(|c| c.name != "..").count();
-            let total_size: u64 = children.iter().filter(|c| c.name != "..").map(|c| {
-				if c.is_dir {
-					let full_path = current_dir.join(&c.name_full);
-                    dir_sizes.get(&full_path).copied().unwrap_or(0)
+        // Returns (count_part, size_part) e.g. ("0/5", "1.2 KiB") or ("2/5", "800 B/1.2 KiB")
+        let panel_stat = |children: &[crate::app::Item], selected_set: &std::collections::HashSet<usize>, current_dir: &PathBuf, dir_sizes: &std::collections::HashMap<PathBuf, u64>| -> (String, String) {
+            let item_size = |c: &crate::app::Item| -> u64 {
+                if c.is_dir {
+                    dir_sizes.get(&current_dir.join(&c.name_full)).copied().unwrap_or(0)
                 } else {
-					c.size_bytes
+                    c.size_bytes
                 }
-            }).sum();
-			
+            };
+            let total_count = children.iter().filter(|c| c.name != "..").count();
+            let total_size: u64 = children.iter().filter(|c| c.name != "..").map(|c| item_size(c)).sum();
+
             if selected_set.is_empty() {
-				format!(" {}/{} | {} ", 0, total_count, format_size(total_size))
+                (format!("0/{}", total_count), format_size(total_size))
             } else {
-				let sel_count = selected_set.iter().filter(|&&idx| children.get(idx).map_or(false, |c| c.name != "..")).count();
-                let sel_size: u64 = selected_set.iter().filter_map(|&idx| children.get(idx)).filter(|c| c.name != "..").map(|c| {
-					if c.is_dir {
-						let full_path = current_dir.join(&c.name_full);
-                        dir_sizes.get(&full_path).copied().unwrap_or(0)
-                    } else {
-						c.size_bytes
-                    }
-                }).sum();
-                format!(" {}/{} | {}/{} ", sel_count, total_count, format_size(sel_size), format_size(total_size))
+                let sel_count = selected_set.iter().filter(|&&idx| children.get(idx).map_or(false, |c| c.name != "..")).count();
+                let sel_size: u64 = selected_set.iter().filter_map(|&idx| children.get(idx)).filter(|c| c.name != "..").map(|c| item_size(c)).sum();
+                (format!("{}/{}", sel_count, total_count), format!("{}/{}", format_size(sel_size), format_size(total_size)))
             }
         };
-		
-        let left_stat = panel_stat(&app_state.children_left, &app_state.selected_left, &app_state.dir_left, &app_state.dir_sizes);
-        let right_stat = panel_stat(&app_state.children_right, &app_state.selected_right, &app_state.dir_right, &app_state.dir_sizes);
-		
-		let total_width = area.width as usize;
-        let left_pad = (total_width.saturating_sub(3) / 2).saturating_sub(left_stat.len() + 1);
-        let right_pad = (total_width.saturating_sub(2) / 2).saturating_sub(right_stat.len() + 1);
+
+        let (left_count, left_size) = panel_stat(&app_state.children_left, &app_state.selected_left, &app_state.dir_left, &app_state.dir_sizes);
+        let (right_count, right_size) = panel_stat(&app_state.children_right, &app_state.selected_right, &app_state.dir_right, &app_state.dir_sizes);
+
+        // " count - size " → len = 1 + count + 3 + size + 1
+        let left_stat_len = 1 + left_count.len() + 3 + left_size.len() + 1;
+        let right_stat_len = 1 + right_count.len() + 3 + right_size.len() + 1;
+
+        let total_width = area.width as usize;
+        let left_pad = (total_width.saturating_sub(3) / 2).saturating_sub(left_stat_len + 1);
+        let right_pad = (total_width.saturating_sub(2) / 2).saturating_sub(right_stat_len + 1);
 
         let status_line = vec![
             Span::styled("├─", Style::default().fg(COLOR_BORDER)),
-            Span::styled(left_stat, Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!(" {}", left_count), Style::default().fg(COLOR_TITLE)),
+            Span::styled(" - ", Style::default().fg(COLOR_BORDER)),
+            Span::styled(format!("{} ", left_size), Style::default().fg(COLOR_TITLE)),
             Span::styled(format!("{}┴─", "─".repeat(left_pad)), Style::default().fg(COLOR_BORDER)),
-            Span::styled(right_stat, Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!(" {}", right_count), Style::default().fg(COLOR_TITLE)),
+            Span::styled(" - ", Style::default().fg(COLOR_BORDER)),
+            Span::styled(format!("{} ", right_size), Style::default().fg(COLOR_TITLE)),
             Span::styled(format!("{}┤", "─".repeat(right_pad)), Style::default().fg(COLOR_BORDER)),
         ];
         f.render_widget(Paragraph::new(Line::from(status_line)), area);
