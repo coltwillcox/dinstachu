@@ -143,6 +143,7 @@ pub struct EditorState {
     pub scroll_offset: usize,
     pub horizontal_offset: usize,
     pub modified: bool,
+    pub auto_scroll: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -404,6 +405,7 @@ impl AppState {
             scroll_offset: 0,
             horizontal_offset: 0,
             modified: false,
+            auto_scroll: true,
         });
         self.is_f4_displayed = true;
         Ok(())
@@ -418,6 +420,39 @@ impl AppState {
         if let Some(state) = &mut self.editor_state {
             let extension = state.file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
             state.highlighted_lines = crate::viewer::highlight_content(&state.lines, extension);
+        }
+    }
+
+    pub fn editor_scroll_up(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            if state.scroll_offset > 0 {
+                state.scroll_offset -= 1;
+                state.auto_scroll = false;
+            }
+        }
+    }
+
+    pub fn editor_scroll_down(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            let max = state.lines.len().saturating_sub(self.editor_viewport_height);
+            if state.scroll_offset < max {
+                state.scroll_offset += 1;
+                state.auto_scroll = false;
+            }
+        }
+    }
+
+    pub fn editor_scroll_left(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            state.horizontal_offset = state.horizontal_offset.saturating_sub(1);
+            state.auto_scroll = false;
+        }
+    }
+
+    pub fn editor_scroll_right(&mut self) {
+        if let Some(state) = &mut self.editor_state {
+            state.horizontal_offset += 1;
+            state.auto_scroll = false;
         }
     }
 

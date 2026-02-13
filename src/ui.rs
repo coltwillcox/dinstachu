@@ -392,18 +392,20 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut AppStat
             .style(Style::default().bg(ratatui::style::Color::Black));
         f.render_widget(line_number_para, chunks[0]);
 
-        // Auto-scroll horizontally to keep cursor visible
-        let visual_cursor_col: usize = editor_state.lines[editor_state.cursor_line]
-            .chars()
-            .take(editor_state.cursor_col)
-            .map(|c| if c == '\t' { TAB_SPACES.len() } else { 1 })
-            .sum();
-        let viewport_width = chunks[1].width as usize;
-        if visual_cursor_col < editor_state.horizontal_offset {
-            editor_state.horizontal_offset = visual_cursor_col;
-        }
-        if visual_cursor_col >= editor_state.horizontal_offset + viewport_width {
-            editor_state.horizontal_offset = visual_cursor_col - viewport_width + 1;
+        // Auto-scroll to keep cursor visible (disabled during mouse scrolling)
+        if editor_state.auto_scroll {
+            let visual_cursor_col: usize = editor_state.lines[editor_state.cursor_line]
+                .chars()
+                .take(editor_state.cursor_col)
+                .map(|c| if c == '\t' { TAB_SPACES.len() } else { 1 })
+                .sum();
+            let viewport_width = chunks[1].width as usize;
+            if visual_cursor_col < editor_state.horizontal_offset {
+                editor_state.horizontal_offset = visual_cursor_col;
+            }
+            if visual_cursor_col >= editor_state.horizontal_offset + viewport_width {
+                editor_state.horizontal_offset = visual_cursor_col - viewport_width + 1;
+            }
         }
         let h_offset = editor_state.horizontal_offset;
 
