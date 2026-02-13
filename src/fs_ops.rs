@@ -78,25 +78,6 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
     Ok(children)
 }
 
-pub fn get_root_dir() -> Result<PathBuf, std::io::Error> {
-    env::current_dir().map(|path_current| {
-        let mut path = path_current;
-        while let Some(parent) = path.parent() {
-            if parent.components().count() == 1 {
-                // This likely indicates the root directory on Unix-like systems.
-                return parent.to_path_buf();
-            }
-            #[cfg(windows)]
-            if parent.to_string_lossy().contains(':') && parent.parent().is_none() {
-                // This likely indicates the root of a drive on Windows (e.g., "C:").
-                return parent.to_path_buf();
-            }
-            path = parent.to_path_buf();
-        }
-        path // Fallback to the current directory if no clear root is found.
-    })
-}
-
 pub fn get_current_dir() -> Result<PathBuf, std::io::Error> {
     match env::current_dir() {
         Ok(path) => Ok(path),
