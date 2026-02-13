@@ -330,7 +330,7 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
         } else {
             let content_lines: Vec<Line> = viewer_state.content_lines[start..end]
                 .iter()
-                .map(|line| Line::from(Span::raw(line.clone())))
+                .map(|line| Line::from(Span::raw(line.replace('\t', TAB_SPACES))))
                 .collect();
 
             let content_para =
@@ -397,13 +397,16 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
             let actual_line_idx = start + idx;
 
             if actual_line_idx == editor_state.cursor_line {
-                // Show cursor on this line (plain text with cursor block)
-                let cursor_col = editor_state.cursor_col;
-                let chars: Vec<char> = line.chars().collect();
-                let before: String = chars[..cursor_col.min(chars.len())].iter().collect();
-                let cursor_char = chars.get(cursor_col).copied().unwrap_or(' ');
-                let after: String = if cursor_col < chars.len() {
-                    chars[cursor_col + 1..].iter().collect()
+                // Expand tabs then split at the visual cursor position
+                let visual_col: usize = line.chars().take(editor_state.cursor_col)
+                    .map(|c| if c == '\t' { TAB_SPACES.len() } else { 1 })
+                    .sum();
+                let expanded = line.replace('\t', TAB_SPACES);
+                let exp_chars: Vec<char> = expanded.chars().collect();
+                let before: String = exp_chars[..visual_col.min(exp_chars.len())].iter().collect();
+                let cursor_char = exp_chars.get(visual_col).copied().unwrap_or(' ');
+                let after: String = if visual_col < exp_chars.len() {
+                    exp_chars[visual_col + 1..].iter().collect()
                 } else {
                     String::new()
                 };
@@ -414,9 +417,13 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
                     Span::styled(after, STYLE_FILE),
                 ]));
             } else if has_highlighting && actual_line_idx < editor_state.highlighted_lines.len() {
-                content_lines.push(Line::from(editor_state.highlighted_lines[actual_line_idx].clone()));
+                let spans: Vec<Span> = editor_state.highlighted_lines[actual_line_idx]
+                    .iter()
+                    .map(|span| Span::styled(span.content.replace('\t', TAB_SPACES), span.style))
+                    .collect();
+                content_lines.push(Line::from(spans));
             } else {
-                content_lines.push(Line::from(Span::styled(line.clone(), STYLE_FILE)));
+                content_lines.push(Line::from(Span::styled(line.replace('\t', TAB_SPACES), STYLE_FILE)));
             }
         }
 

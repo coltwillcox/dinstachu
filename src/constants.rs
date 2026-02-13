@@ -22,3 +22,4 @@ pub const COLOR_TITLE: Color = Color::Rgb(242, 34, 255);                     // 
 pub const COLOR_SELECTED_MARKER: Color = Color::Rgb(255, 215, 0);            // Gold/Yellow for selection marker
 
 pub const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+pub const TAB_SPACES: &str = "    ";
