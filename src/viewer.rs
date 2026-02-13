@@ -31,10 +31,12 @@ pub fn is_binary_file(path: &Path) -> Result<bool, Error> {
         return Ok(true);
     }
 
-    // Check UTF-8 validity
-    std::str::from_utf8(&buffer[..bytes_read])
-        .map(|_| false)
-        .or(Ok(true))
+    // Check UTF-8 validity (allow incomplete sequence at buffer boundary)
+    match std::str::from_utf8(&buffer[..bytes_read]) {
+        Ok(_) => Ok(false),
+        // error_len() is None for truncated multi-byte sequence at end of buffer
+        Err(e) => Ok(e.error_len().is_some()),
+    }
 }
 
 pub fn load_file_content(path: &Path) -> Result<ViewerState, Error> {
