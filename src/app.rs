@@ -1,9 +1,86 @@
 use crate::fs_ops::get_current_dir;
 use crate::viewer::ViewerState;
+use ratatui::text::Span;
 use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::time::Instant;
+
+/// Reusable single-line text input with cursor.
+pub struct TextInput {
+    pub text: String,
+    pub cursor: usize,
+}
+
+impl TextInput {
+    pub fn new() -> Self {
+        Self { text: String::new(), cursor: 0 }
+    }
+
+    pub fn clear(&mut self) {
+        self.text.clear();
+        self.cursor = 0;
+    }
+
+    pub fn set(&mut self, value: String) {
+        self.cursor = value.chars().count();
+        self.text = value;
+    }
+
+    fn byte_index(&self) -> usize {
+        self.text.char_indices()
+            .nth(self.cursor)
+            .map(|(i, _)| i)
+            .unwrap_or(self.text.len())
+    }
+
+    pub fn move_left(&mut self) {
+        self.cursor = self.cursor.saturating_sub(1);
+    }
+
+    pub fn move_right(&mut self) {
+        let len = self.text.chars().count();
+        if self.cursor < len {
+            self.cursor += 1;
+        }
+    }
+
+    pub fn insert(&mut self, c: char) {
+        let idx = self.byte_index();
+        self.text.insert(idx, c);
+        self.cursor += 1;
+    }
+
+    pub fn backspace(&mut self) {
+        if self.cursor > 0 {
+            let byte_start = self.text.char_indices()
+                .nth(self.cursor - 1)
+                .map(|(i, _)| i)
+                .unwrap_or(0);
+            let byte_end = self.byte_index();
+            self.text.replace_range(byte_start..byte_end, "");
+            self.cursor -= 1;
+        }
+    }
+
+    pub fn delete_forward(&mut self) {
+        let len = self.text.chars().count();
+        if self.cursor < len {
+            let byte_start = self.byte_index();
+            let byte_end = self.text.char_indices()
+                .nth(self.cursor + 1)
+                .map(|(i, _)| i)
+                .unwrap_or(self.text.len());
+            self.text.replace_range(byte_start..byte_end, "");
+        }
+    }
+
+    /// Returns text with a `_` cursor marker inserted at the cursor position.
+    pub fn display_with_cursor(&self) -> String {
+        let (p1, p2) = self.text.split_at(self.byte_index());
+        format!("{}_{}", p1, p2)
+    }
+}
 
 pub struct AppState {
     pub is_error_displayed: bool,
@@ -19,10 +96,8 @@ pub struct AppState {
     pub children_left: Vec<Item>,
     pub children_right: Vec<Item>,
     pub error_message: String,
-    pub rename_input: String,
-    pub rename_character_index: usize,
-    pub create_input: String,
-    pub create_character_index: usize,
+    pub rename_input: TextInput,
+    pub create_input: TextInput,
     pub is_f8_displayed: bool,
     pub delete_items: Vec<(String, bool)>,
     pub search_input: String,
@@ -46,8 +121,6 @@ pub struct AppState {
     pub last_click_pos: (u16, u16),
     pub is_editor_save_prompt: bool,
 }
-
-use ratatui::text::Span;
 
 #[derive(Clone)]
 pub struct EditorState {
@@ -77,18 +150,11 @@ impl AppState {
         state_left.select(Some(1));
         let mut state_right = TableState::default();
         state_right.select(Some(1));
-        let mut dir_root = PathBuf::new();
 
-        let mut is_error_displayed = false;
-        let mut error_message = String::new();
-
-        match get_current_dir() {
-            Ok(root) => dir_root = root,
-            Err(e) => {
-                is_error_displayed = true;
-                error_message = e.to_string();
-            }
-        }
+        let (is_error_displayed, error_message, dir_root) = match get_current_dir() {
+            Ok(root) => (false, String::new(), root),
+            Err(e) => (true, e.to_string(), PathBuf::new()),
+        };
 
         Self {
             is_error_displayed,
@@ -97,17 +163,15 @@ impl AppState {
             is_f7_displayed: false,
             is_left_active: true,
             dir_left: dir_root.clone(),
-			dir_right: dir_root.clone(),
+            dir_right: dir_root,
             page_size: 0,
             state_left,
             state_right,
-            children_left: Vec::<Item>::new(),
-            children_right: Vec::<Item>::new(),
+            children_left: Vec::new(),
+            children_right: Vec::new(),
             error_message,
-            rename_input: String::new(),
-            rename_character_index: 0,
-            create_input: String::new(),
-            create_character_index: 0,
+            rename_input: TextInput::new(),
+            create_input: TextInput::new(),
             is_f8_displayed: false,
             delete_items: Vec::new(),
             search_input: String::new(),
@@ -133,60 +197,8 @@ impl AppState {
         }
     }
 
-    pub fn move_cursor_left(&mut self) {
-        let cursor_moved_left = self.rename_character_index.saturating_sub(1);
-        self.rename_character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    pub fn move_cursor_right(&mut self) {
-        let cursor_moved_right = self.rename_character_index.saturating_add(1);
-        self.rename_character_index = self.clamp_cursor(cursor_moved_right);
-    }
-
-    pub fn move_cursor_end(&mut self) {
-        let cursor_moved_right = self.rename_character_index.saturating_add(self.rename_input.len());
-        self.rename_character_index = self.clamp_cursor(cursor_moved_right);
-    }
-
-    pub fn enter_char(&mut self, new_char: char) {
-        let index = self.byte_index();
-        self.rename_input.insert(index, new_char);
-        self.move_cursor_right();
-    }
-
-    pub fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
-        new_cursor_pos.clamp(0, self.rename_input.chars().count())
-    }
-
-    pub fn byte_index(&self) -> usize {
-        self.rename_input.char_indices().map(|(i, _)| i).nth(self.rename_character_index).unwrap_or(self.rename_input.len())
-    }
-
-    pub fn delete_char(&mut self) {
-        let is_not_cursor_leftmost = self.rename_character_index != 0;
-        if is_not_cursor_leftmost {
-            let current_index = self.rename_character_index;
-            let from_left_to_current_index = current_index - 1;
-            let before_char_to_delete = self.rename_input.chars().take(from_left_to_current_index);
-            let after_char_to_delete = self.rename_input.chars().skip(current_index);
-            self.rename_input = before_char_to_delete.chain(after_char_to_delete).collect();
-            self.move_cursor_left();
-        }
-    }
-
-    pub fn delete_char_forward(&mut self) {
-        let len = self.rename_input.chars().count();
-        if self.rename_character_index < len {
-            let current_index = self.rename_character_index;
-            let before = self.rename_input.chars().take(current_index);
-            let after = self.rename_input.chars().skip(current_index + 1);
-            self.rename_input = before.chain(after).collect();
-        }
-    }
-    
     pub fn reset_rename(&mut self) {
-        self.rename_character_index = 0;
-        self.rename_input = String::new();
+        self.rename_input.clear();
         self.is_f2_displayed = false;
     }
 
@@ -197,69 +209,12 @@ impl AppState {
 
     pub fn reset_error(&mut self) {
         self.is_error_displayed = false;
-        self.error_message = String::new();
+        self.error_message.clear();
     }
 
     pub fn reset_create(&mut self) {
         self.is_f7_displayed = false;
         self.create_input.clear();
-        self.create_character_index = 0;
-    }
-
-    pub fn create_move_cursor_left(&mut self) {
-        let cursor_moved_left = self.create_character_index.saturating_sub(1);
-        self.create_character_index = self.create_clamp_cursor(cursor_moved_left);
-    }
-
-    pub fn create_move_cursor_right(&mut self) {
-        let cursor_moved_right = self.create_character_index.saturating_add(1);
-        self.create_character_index = self.create_clamp_cursor(cursor_moved_right);
-    }
-
-    pub fn create_enter_char(&mut self, new_char: char) {
-        let index = self.create_byte_index();
-        self.create_input.insert(index, new_char);
-        self.create_move_cursor_right();
-    }
-
-    pub fn create_clamp_cursor(&self, new_cursor_pos: usize) -> usize {
-        new_cursor_pos.clamp(0, self.create_input.chars().count())
-    }
-
-    pub fn create_byte_index(&self) -> usize {
-        self.create_input.char_indices().map(|(i, _)| i).nth(self.create_character_index).unwrap_or(self.create_input.len())
-    }
-
-    pub fn create_delete_char(&mut self) {
-        let is_not_cursor_leftmost = self.create_character_index != 0;
-        if is_not_cursor_leftmost {
-            let current_index = self.create_character_index;
-            let from_left_to_current_index = current_index - 1;
-            let before_char_to_delete = self.create_input.chars().take(from_left_to_current_index);
-            let after_char_to_delete = self.create_input.chars().skip(current_index);
-            self.create_input = before_char_to_delete.chain(after_char_to_delete).collect();
-            self.create_move_cursor_left();
-        }
-    }
-
-    pub fn create_delete_char_forward(&mut self) {
-        let len = self.create_input.chars().count();
-        if self.create_character_index < len {
-            let current_index = self.create_character_index;
-            let before = self.create_input.chars().take(current_index);
-            let after = self.create_input.chars().skip(current_index + 1);
-            self.create_input = before.chain(after).collect();
-        }
-    }
-
-    pub fn get_create_input(&self) -> String {
-        let (p1, p2) = self.create_input.split_at(self.create_character_index);
-        format!("{}_{}",  p1, p2)
-    }
-
-    pub fn get_rename_input(&mut self) -> String {
-        let (p1, p2) = self.rename_input.split_at(self.rename_character_index);
-        return format!("{}{}{}", p1, "_", p2);
     }
 
     // Quick search methods
@@ -269,13 +224,9 @@ impl AppState {
     }
 
     pub fn search_backspace(&mut self) {
+        self.search_input.pop();
         if !self.search_input.is_empty() {
-            self.search_input.pop();
-            if self.search_input.is_empty() {
-                // Search cleared, do nothing
-            } else {
-                self.jump_to_first_match();
-            }
+            self.jump_to_first_match();
         }
     }
 
@@ -287,11 +238,8 @@ impl AppState {
         if self.search_input.is_empty() {
             return;
         }
-
         let search_lower = self.search_input.to_lowercase();
-        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
-        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
-
+        let (children, state) = self.active_panel_mut();
         if let Some(index) = children.iter().position(|item| item.name_full.to_lowercase().starts_with(&search_lower)) {
             state.select(Some(index));
         }
@@ -301,22 +249,14 @@ impl AppState {
         if self.search_input.is_empty() {
             return;
         }
-
         let search_lower = self.search_input.to_lowercase();
-        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
-        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
-        let current_index = state.selected().unwrap_or(0);
+        let (children, state) = self.active_panel_mut();
+        let current = state.selected().unwrap_or(0);
+        let len = children.len();
 
-        // Find next match after current position
-        for i in (current_index + 1)..children.len() {
-            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
-                state.select(Some(i));
-                return;
-            }
-        }
-
-        // Wrap around to beginning
-        for i in 0..=current_index {
+        // Search forward from current+1, wrapping around
+        for offset in 1..=len {
+            let i = (current + offset) % len;
             if children[i].name_full.to_lowercase().starts_with(&search_lower) {
                 state.select(Some(i));
                 return;
@@ -328,26 +268,27 @@ impl AppState {
         if self.search_input.is_empty() {
             return;
         }
-
         let search_lower = self.search_input.to_lowercase();
-        let children = if self.is_left_active { &self.children_left } else { &self.children_right };
-        let state = if self.is_left_active { &mut self.state_left } else { &mut self.state_right };
-        let current_index = state.selected().unwrap_or(0);
+        let (children, state) = self.active_panel_mut();
+        let current = state.selected().unwrap_or(0);
+        let len = children.len();
 
-        // Find previous match before current position
-        for i in (0..current_index).rev() {
+        // Search backward from current-1, wrapping around
+        for offset in 1..=len {
+            let i = (current + len - offset) % len;
             if children[i].name_full.to_lowercase().starts_with(&search_lower) {
                 state.select(Some(i));
                 return;
             }
         }
+    }
 
-        // Wrap around to end
-        for i in (current_index..children.len()).rev() {
-            if children[i].name_full.to_lowercase().starts_with(&search_lower) {
-                state.select(Some(i));
-                return;
-            }
+    /// Returns (&children, &mut state) for the active panel.
+    fn active_panel_mut(&mut self) -> (&[Item], &mut TableState) {
+        if self.is_left_active {
+            (&self.children_left, &mut self.state_left)
+        } else {
+            (&self.children_right, &mut self.state_right)
         }
     }
 
@@ -358,15 +299,10 @@ impl AppState {
 
     pub fn open_viewer(&mut self, file_path: PathBuf) -> Result<(), String> {
         use crate::viewer::load_file_content;
-
-        match load_file_content(&file_path) {
-            Ok(state) => {
-                self.viewer_state = Some(state);
-                self.is_f3_displayed = true;
-                Ok(())
-            }
-            Err(e) => Err(e.to_string()),
-        }
+        let state = load_file_content(&file_path).map_err(|e| e.to_string())?;
+        self.viewer_state = Some(state);
+        self.is_f3_displayed = true;
+        Ok(())
     }
 
     pub fn close_viewer(&mut self) {
@@ -376,8 +312,8 @@ impl AppState {
 
     pub fn viewer_scroll_down(&mut self) {
         if let Some(state) = &mut self.viewer_state {
-            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
-            state.scroll_offset = (state.scroll_offset + 1).min(max_offset);
+            let max = state.total_lines.saturating_sub(self.viewer_viewport_height);
+            state.scroll_offset = (state.scroll_offset + 1).min(max);
         }
     }
 
@@ -389,8 +325,8 @@ impl AppState {
 
     pub fn viewer_page_down(&mut self) {
         if let Some(state) = &mut self.viewer_state {
-            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
-            state.scroll_offset = (state.scroll_offset + self.viewer_viewport_height).min(max_offset);
+            let max = state.total_lines.saturating_sub(self.viewer_viewport_height);
+            state.scroll_offset = (state.scroll_offset + self.viewer_viewport_height).min(max);
         }
     }
 
@@ -408,8 +344,7 @@ impl AppState {
 
     pub fn viewer_end(&mut self) {
         if let Some(state) = &mut self.viewer_state {
-            let max_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
-            state.scroll_offset = max_offset;
+            state.scroll_offset = state.total_lines.saturating_sub(self.viewer_viewport_height);
         }
     }
 
@@ -419,8 +354,8 @@ impl AppState {
         let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let lines = if lines.is_empty() { vec![String::new()] } else { lines };
-        let extension = file_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
-        let highlighted_lines = highlight_content(&lines, &extension);
+        let extension = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        let highlighted_lines = highlight_content(&lines, extension);
 
         self.editor_state = Some(EditorState {
             file_path,
@@ -451,9 +386,7 @@ impl AppState {
         if let Some(state) = &mut self.editor_state {
             if state.cursor_line > 0 {
                 state.cursor_line -= 1;
-                let line_len = state.lines[state.cursor_line].chars().count();
-                state.cursor_col = state.cursor_col.min(line_len);
-                // Adjust scroll if cursor goes above viewport
+                state.clamp_col();
                 if state.cursor_line < state.scroll_offset {
                     state.scroll_offset = state.cursor_line;
                 }
@@ -465,11 +398,9 @@ impl AppState {
         if let Some(state) = &mut self.editor_state {
             if state.cursor_line < state.lines.len().saturating_sub(1) {
                 state.cursor_line += 1;
-                let line_len = state.lines[state.cursor_line].chars().count();
-                state.cursor_col = state.cursor_col.min(line_len);
-                // Adjust scroll if cursor goes below viewport
+                state.clamp_col();
                 if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
-                    state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+                    state.scroll_offset = state.cursor_line - self.editor_viewport_height + 1;
                 }
             }
         }
@@ -498,7 +429,7 @@ impl AppState {
                 state.cursor_line += 1;
                 state.cursor_col = 0;
                 if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
-                    state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+                    state.scroll_offset = state.cursor_line - self.editor_viewport_height + 1;
                 }
             }
         }
@@ -521,8 +452,7 @@ impl AppState {
             let page = self.editor_viewport_height.saturating_sub(1);
             state.cursor_line = state.cursor_line.saturating_sub(page);
             state.scroll_offset = state.scroll_offset.saturating_sub(page);
-            let line_len = state.lines[state.cursor_line].chars().count();
-            state.cursor_col = state.cursor_col.min(line_len);
+            state.clamp_col();
         }
     }
 
@@ -533,15 +463,14 @@ impl AppState {
             state.cursor_line = (state.cursor_line + page).min(max_line);
             let max_scroll = state.lines.len().saturating_sub(self.editor_viewport_height);
             state.scroll_offset = (state.scroll_offset + page).min(max_scroll);
-            let line_len = state.lines[state.cursor_line].chars().count();
-            state.cursor_col = state.cursor_col.min(line_len);
+            state.clamp_col();
         }
     }
 
     pub fn editor_insert_char(&mut self, c: char) {
         if let Some(state) = &mut self.editor_state {
             let line = &mut state.lines[state.cursor_line];
-            let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+            let byte_idx = char_to_byte(line, state.cursor_col);
             line.insert(byte_idx, c);
             state.cursor_col += 1;
             state.modified = true;
@@ -554,14 +483,13 @@ impl AppState {
         if let Some(state) = &mut self.editor_state {
             if state.cursor_col > 0 {
                 let line = &mut state.lines[state.cursor_line];
-                let byte_idx = line.char_indices().nth(state.cursor_col - 1).map(|(i, _)| i).unwrap_or(0);
-                let end_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
-                line.replace_range(byte_idx..end_idx, "");
+                let byte_start = char_to_byte(line, state.cursor_col - 1);
+                let byte_end = char_to_byte(line, state.cursor_col);
+                line.replace_range(byte_start..byte_end, "");
                 state.cursor_col -= 1;
                 state.modified = true;
                 changed = true;
             } else if state.cursor_line > 0 {
-                // Join with previous line
                 let current_line = state.lines.remove(state.cursor_line);
                 state.cursor_line -= 1;
                 state.cursor_col = state.lines[state.cursor_line].chars().count();
@@ -584,13 +512,12 @@ impl AppState {
             let line_len = state.lines[state.cursor_line].chars().count();
             if state.cursor_col < line_len {
                 let line = &mut state.lines[state.cursor_line];
-                let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
-                let end_idx = line.char_indices().nth(state.cursor_col + 1).map(|(i, _)| i).unwrap_or(line.len());
-                line.replace_range(byte_idx..end_idx, "");
+                let byte_start = char_to_byte(line, state.cursor_col);
+                let byte_end = char_to_byte(line, state.cursor_col + 1);
+                line.replace_range(byte_start..byte_end, "");
                 state.modified = true;
                 changed = true;
             } else if state.cursor_line < state.lines.len().saturating_sub(1) {
-                // Join with next line
                 let next_line = state.lines.remove(state.cursor_line + 1);
                 state.lines[state.cursor_line].push_str(&next_line);
                 state.modified = true;
@@ -605,7 +532,7 @@ impl AppState {
     pub fn editor_enter(&mut self) {
         if let Some(state) = &mut self.editor_state {
             let line = &mut state.lines[state.cursor_line];
-            let byte_idx = line.char_indices().nth(state.cursor_col).map(|(i, _)| i).unwrap_or(line.len());
+            let byte_idx = char_to_byte(line, state.cursor_col);
             let new_line = line[byte_idx..].to_string();
             line.truncate(byte_idx);
             state.cursor_line += 1;
@@ -613,7 +540,7 @@ impl AppState {
             state.cursor_col = 0;
             state.modified = true;
             if state.cursor_line >= state.scroll_offset + self.editor_viewport_height {
-                state.scroll_offset = state.cursor_line.saturating_sub(self.editor_viewport_height) + 1;
+                state.scroll_offset = state.cursor_line - self.editor_viewport_height + 1;
             }
         }
         self.editor_rehighlight();
@@ -629,7 +556,7 @@ impl AppState {
     }
 
     pub fn editor_is_modified(&self) -> bool {
-        self.editor_state.as_ref().map(|s| s.modified).unwrap_or(false)
+        self.editor_state.as_ref().is_some_and(|s| s.modified)
     }
 
     pub fn reset_copy(&mut self) {
@@ -664,26 +591,17 @@ impl AppState {
             };
 
             if let Some(index) = state.selected() {
-                // Don't allow selecting ".." entry
                 if index < children.len() && children[index].name != ".." {
                     let item = &children[index];
 
-                    if selected_set.contains(&index) {
-                        selected_set.remove(&index);
-                    } else {
+                    if !selected_set.remove(&index) {
                         selected_set.insert(index);
 
-                        // Calculate directory size when selecting
                         if calculate_size && item.is_dir {
-                            let mut full_path = current_dir.clone();
-                            full_path.push(&item.name_full);
+                            let full_path = current_dir.join(&item.name_full);
                             match calculate_dir_size(&full_path) {
-                                Ok(size) => {
-                                    dir_size_result = Some((full_path, size));
-                                }
-                                Err(e) => {
-                                    error_msg = Some(format!("Cannot calculate size: {}", e));
-                                }
+                                Ok(size) => dir_size_result = Some((full_path, size)),
+                                Err(e) => error_msg = Some(format!("Cannot calculate size: {}", e)),
                             }
                         }
                     }
@@ -692,13 +610,11 @@ impl AppState {
                 // Move to next item
                 let len = children.len();
                 if len > 0 {
-                    let next = if index >= len - 1 { index } else { index + 1 };
-                    state.select(Some(next));
+                    state.select(Some((index + 1).min(len - 1)));
                 }
             }
         }
 
-        // Handle results after borrows are released
         if let Some((path, size)) = dir_size_result {
             self.dir_sizes.insert(path, size);
         }
@@ -719,4 +635,20 @@ impl AppState {
             self.selected_right.clear();
         }
     }
+}
+
+impl EditorState {
+    /// Clamp cursor_col to current line length.
+    fn clamp_col(&mut self) {
+        let line_len = self.lines[self.cursor_line].chars().count();
+        self.cursor_col = self.cursor_col.min(line_len);
+    }
+}
+
+/// Convert a char index to a byte index in a string.
+fn char_to_byte(s: &str, char_idx: usize) -> usize {
+    s.char_indices()
+        .nth(char_idx)
+        .map(|(i, _)| i)
+        .unwrap_or(s.len())
 }

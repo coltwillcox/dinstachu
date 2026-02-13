@@ -138,7 +138,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 
     // Get rename input once if in rename mode
     let rename_input = if app_state.is_f2_displayed {
-        Some(app_state.get_rename_input())
+        Some(app_state.rename_input.display_with_cursor())
     } else {
         None
     };
@@ -619,7 +619,7 @@ fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
     f.render_widget(popup_block, popup_area);
 
     // Show input with cursor
-    let input_display = app_state.get_create_input();
+    let input_display = app_state.create_input.display_with_cursor();
     f.render_widget(
         Paragraph::new(input_display).alignment(Alignment::Center).style(STYLE_TITLE.bg(COLOR_SELECTED_BACKGROUND)),
         popup_area.inner(Margin { vertical: 3, horizontal: 2 }),

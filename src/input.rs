@@ -17,11 +17,11 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(2) => toggle_rename(app_state),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Enter => handle_rename(app_state),
-                        KeyCode::Char(to_insert) => app_state.enter_char(to_insert),
-                        KeyCode::Backspace => app_state.delete_char(),
-                        KeyCode::Delete => app_state.delete_char_forward(),
-                        KeyCode::Left => app_state.move_cursor_left(),
-                        KeyCode::Right => app_state.move_cursor_right(),
+                        KeyCode::Char(to_insert) => app_state.rename_input.insert(to_insert),
+                        KeyCode::Backspace => app_state.rename_input.backspace(),
+                        KeyCode::Delete => app_state.rename_input.delete_forward(),
+                        KeyCode::Left => app_state.rename_input.move_left(),
+                        KeyCode::Right => app_state.rename_input.move_right(),
                         _ => {}
                     }
                 } else if app_state.is_f1_displayed {
@@ -44,11 +44,11 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(7) => toggle_create(app_state),
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Enter => handle_create_confirm(app_state),
-                        KeyCode::Char(to_insert) => app_state.create_enter_char(to_insert),
-                        KeyCode::Backspace => app_state.create_delete_char(),
-                        KeyCode::Delete => app_state.create_delete_char_forward(),
-                        KeyCode::Left => app_state.create_move_cursor_left(),
-                        KeyCode::Right => app_state.create_move_cursor_right(),
+                        KeyCode::Char(to_insert) => app_state.create_input.insert(to_insert),
+                        KeyCode::Backspace => app_state.create_input.backspace(),
+                        KeyCode::Delete => app_state.create_input.delete_forward(),
+                        KeyCode::Left => app_state.create_input.move_left(),
+                        KeyCode::Right => app_state.create_input.move_right(),
                         _ => {}
                     }
                 } else if app_state.is_f3_displayed {
@@ -268,8 +268,7 @@ fn toggle_rename(app_state: &mut AppState) {
         } else {
             &app_state.children_right[selected_index]
         };
-        app_state.rename_input = selected_item.name_full.clone();
-        app_state.move_cursor_end();
+        app_state.rename_input.set(selected_item.name_full.clone());
     } else {
         app_state.reset_rename();
     }
@@ -280,7 +279,6 @@ fn toggle_create(app_state: &mut AppState) {
     if app_state.is_f7_displayed {
         // Opening dialog - clear input fields only
         app_state.create_input.clear();
-        app_state.create_character_index = 0;
     }
 }
 
@@ -294,7 +292,7 @@ fn handle_rename(app_state: &mut AppState) {
         let mut original_path = parent_path.clone();
         original_path.push(item.name_full.clone());
         let mut new_path = parent_path.clone();
-        new_path.push(app_state.rename_input.clone());
+        new_path.push(app_state.rename_input.text.clone());
 
         match rename_path(original_path, new_path) {
             Ok(_) => {
@@ -583,7 +581,7 @@ fn handle_delete_confirm(app_state: &mut AppState) {
 }
 
 fn handle_create_confirm(app_state: &mut AppState) {
-    if app_state.create_input.is_empty() {
+    if app_state.create_input.text.is_empty() {
         app_state.reset_create();
         return;
     }
@@ -591,7 +589,7 @@ fn handle_create_confirm(app_state: &mut AppState) {
     let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
 
     let mut new_dir_path = parent_path.clone();
-    new_dir_path.push(&app_state.create_input);
+    new_dir_path.push(&app_state.create_input.text);
 
     match create_directory(new_dir_path) {
         Ok(_) => {
@@ -603,12 +601,12 @@ fn handle_create_confirm(app_state: &mut AppState) {
                     if app_state.is_left_active {
                         app_state.children_left = items;
                         // Select the newly created directory
-                        if let Some(index) = app_state.children_left.iter().position(|item| item.name == app_state.create_input) {
+                        if let Some(index) = app_state.children_left.iter().position(|item| item.name == app_state.create_input.text) {
                             app_state.state_left.select(Some(index));
                         }
                     } else {
                         app_state.children_right = items;
-                        if let Some(index) = app_state.children_right.iter().position(|item| item.name == app_state.create_input) {
+                        if let Some(index) = app_state.children_right.iter().position(|item| item.name == app_state.create_input.text) {
                             app_state.state_right.select(Some(index));
                         }
                     }

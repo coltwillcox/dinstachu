@@ -13,7 +13,7 @@
 
 > 💜 *A synthwave-infused dual-pane TUI file manager, forged in Rust* 💜
 
-**Version 0.7.0** ▀▄▀▄ *Neon Dreams Edition*
+**Version 0.8.0** ▀▄▀▄ *Neon Dreams Edition*
 
 ---
 
@@ -61,15 +61,19 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - **F2** ✏️ - Rename files & folders
 - **F3** 👁️ - View files (bordered, plain text)
 - **F4** 📝 - Edit files with **syntax highlighting** (Ctrl+S to save, unsaved changes prompt)
-- **F5** 📋 - Copy to other panel
-- **F6** 📦 - Move to other panel
+- **F5** 📋 - Copy to other panel (selected items or cursor item)
+- **F6** 📦 - Move to other panel (selected items or cursor item)
 - **F7** 📂 - Create new directories
-- **F8** 🗑️ - Delete files & folders (with confirmation)
+- **F8** / **Delete** 🗑️ - Delete files & folders (selected items or cursor item, with confirmation)
 - **F9** 💻 - Open external terminal in current directory
 - **F10** 🚪 - Exit to the void
-- **Space** ✅ - Select/deselect files for batch operations
+- **Space** / **Insert** ✅ - Select/deselect files for batch operations
 - 🖱️ **Double-click** - open directories or view files
 - 🖱️ **Mouse scroll** - scroll content in Viewer, Editor, and file panels
+
+### 📊 Status Bar
+- 📈 **Panel stats** - selected/total file count and size shown per panel
+- 🎨 **Active/inactive styling** - active panel stats highlighted, inactive dimmed
 
 ### 🎨 Viewer (F3)
 - 🖼️ **Bordered frame** with filename title bar
@@ -112,10 +116,10 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 | `F5` | Copy to other panel |
 | `F6` | Move to other panel |
 | `F7` | Create directory |
-| `F8` | Delete |
+| `F8` / `Delete` | Delete (selected items or cursor item) |
 | `F9` | Open terminal |
 | `F10` | Quit |
-| `Space` | Select/deselect file |
+| `Space` / `Insert` | Select/deselect file |
 | `Scroll` | Scroll content (panels, Viewer, Editor) |
 
 ---
@@ -208,5 +212,5 @@ The color palette channels pure 80s energy:
 <p align="center">
   <strong>💜 FM84 💜</strong><br>
   <em>Where every file operation feels like a synth drop</em><br>
-  <code>▀▄▀▄▀▄ v0.7.0 ▄▀▄▀▄▀</code>
+  <code>▀▄▀▄▀▄ v0.8.0 ▄▀▄▀▄▀</code>
 </p>

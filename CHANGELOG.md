@@ -6,6 +6,19 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.8.0] - 2026-02-13
+
+### ✨ Added
+- 🗂️ **Multi-select for F5 Copy, F6 Move, F8 Delete** - operations now work on all selected items when a selection exists, falling back to the cursor item when nothing is selected
+- ⌨️ **Delete key** - triggers delete (same as F8) in file panels, forward-delete in Rename/Create dialogs
+- 📊 **Panel status bar** - bottom bar shows selected/total file count and selected/total size for each panel
+- 🎨 **Active/inactive status styling** - active panel stats use title color, inactive uses dimmed color
+
+### 🛠️ Changed
+- 🔧 **Code optimization** - extracted `TextInput` struct to deduplicate rename/create input logic, pre-computed UI styles as constants, unified copy/move popup rendering, extracted shared helpers
+
+---
+
 ## [0.7.0] - 2026-02-10
 
 ### ✨ Added
