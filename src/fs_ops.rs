@@ -42,6 +42,7 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
             extension: "".to_string(),
             is_dir: true,
             size: "".to_string(),
+            size_bytes: 0,
             modified: "".to_string(),
         });
     }
@@ -53,7 +54,8 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
         let name = if is_dir { name_full.clone() } else { path.file_stem().and_then(|n| n.to_str()).unwrap_or("").to_string() };
         let extension = if is_dir { "".to_string() } else { path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string() };
         let metadata = entry.metadata().ok();
-        let size = if is_dir { "<DIR>".to_string() } else { format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0)) };
+        let size_bytes = if is_dir { 0 } else { metadata.as_ref().map(|m| m.len()).unwrap_or(0) };
+        let size = if is_dir { "<DIR>".to_string() } else { format_size(size_bytes) };
         let modified = metadata.as_ref()
             .and_then(|m| m.modified().ok())
             .map(|t| {
@@ -68,6 +70,7 @@ pub fn load_directory_rows(path: &PathBuf) -> Result<Vec<Item>, Error> {
             extension: extension.clone(),
             is_dir,
             size: size.clone(),
+            size_bytes,
             modified,
         });
     }

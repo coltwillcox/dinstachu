@@ -67,6 +67,7 @@ pub struct Item {
     pub extension: String,
     pub is_dir: bool,
     pub size: String,
+    pub size_bytes: u64,
     pub modified: String,
 }
 

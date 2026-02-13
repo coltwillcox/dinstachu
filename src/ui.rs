@@ -521,17 +521,50 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
         ];
         f.render_widget(Paragraph::new(Line::from(search_line)), area);
     } else {
-        // Show separator
-        let total_width = area.width;
-        let separator = format!(
-            "├{}┴{}┤",
-            "─".repeat(((total_width as usize).saturating_sub(3)) / 2),
-            "─".repeat(((total_width as usize).saturating_sub(2)) / 2)
-        );
-        f.render_widget(
-            Paragraph::new(Text::raw(separator)).style(Style::default().fg(COLOR_BORDER)),
-            area,
-        );
+        // Show panel stats: selected/total files and selected/total size
+        let panel_stat = |children: &[crate::app::Item], selected_set: &std::collections::HashSet<usize>, current_dir: &PathBuf, dir_sizes: &std::collections::HashMap<PathBuf, u64>| -> String {
+			// Count files (exclude "..")
+            let total_count = children.iter().filter(|c| c.name != "..").count();
+            let total_size: u64 = children.iter().filter(|c| c.name != "..").map(|c| {
+				if c.is_dir {
+					let full_path = current_dir.join(&c.name_full);
+                    dir_sizes.get(&full_path).copied().unwrap_or(0)
+                } else {
+					c.size_bytes
+                }
+            }).sum();
+			
+            if selected_set.is_empty() {
+				format!(" {}/{} | {} ", 0, total_count, format_size(total_size))
+            } else {
+				let sel_count = selected_set.iter().filter(|&&idx| children.get(idx).map_or(false, |c| c.name != "..")).count();
+                let sel_size: u64 = selected_set.iter().filter_map(|&idx| children.get(idx)).filter(|c| c.name != "..").map(|c| {
+					if c.is_dir {
+						let full_path = current_dir.join(&c.name_full);
+                        dir_sizes.get(&full_path).copied().unwrap_or(0)
+                    } else {
+						c.size_bytes
+                    }
+                }).sum();
+                format!(" {}/{} | {}/{} ", sel_count, total_count, format_size(sel_size), format_size(total_size))
+            }
+        };
+		
+        let left_stat = panel_stat(&app_state.children_left, &app_state.selected_left, &app_state.dir_left, &app_state.dir_sizes);
+        let right_stat = panel_stat(&app_state.children_right, &app_state.selected_right, &app_state.dir_right, &app_state.dir_sizes);
+		
+		let total_width = area.width as usize;
+        let left_pad = (total_width.saturating_sub(3) / 2).saturating_sub(left_stat.len() + 1);
+        let right_pad = (total_width.saturating_sub(2) / 2).saturating_sub(right_stat.len() + 1);
+
+        let status_line = vec![
+            Span::styled("├─", Style::default().fg(COLOR_BORDER)),
+            Span::styled(left_stat, Style::default().fg(COLOR_TITLE).bg(COLOR_SELECTED_BACKGROUND)),
+            Span::styled(format!("{}┴─", "─".repeat(left_pad)), Style::default().fg(COLOR_BORDER)),
+            Span::styled(right_stat, Style::default().fg(COLOR_TITLE).bg(COLOR_SELECTED_BACKGROUND)),
+            Span::styled(format!("{}┤", "─".repeat(right_pad)), Style::default().fg(COLOR_BORDER)),
+        ];
+        f.render_widget(Paragraph::new(Line::from(status_line)), area);
     }
 }
 
