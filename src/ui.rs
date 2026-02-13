@@ -659,12 +659,12 @@ fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
         let names: Vec<&str> = app_state.delete_items.iter().map(|(name, _)| name.as_str()).collect();
         format!("Delete {} items?\n\n{}", count, names.join(", "))
     };
-    f.render_widget(Paragraph::new(message).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 3, horizontal: 2 }));
+    f.render_widget(Paragraph::new(message).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 2, horizontal: 2 }));
 
     // Instructions
     f.render_widget(
         Paragraph::new("Y / Enter - Yes    N / Esc - No").alignment(Alignment::Center).style(Style::default().fg(COLOR_COLUMNS)),
-        popup_area.inner(Margin { vertical: 5, horizontal: 2 }),
+        popup_area.inner(Margin { vertical: 6, horizontal: 2 }),
     );
 }
 
