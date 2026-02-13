@@ -3,6 +3,7 @@ use crate::fs_ops::{copy_path, create_directory, delete_path, load_directory_row
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::widgets::TableState;
 use std::io::Result;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -503,65 +504,79 @@ fn toggle_delete(app_state: &mut AppState) {
     app_state.is_f8_displayed = !app_state.is_f8_displayed;
 
     if app_state.is_f8_displayed {
-        let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap_or(0) } else { app_state.state_right.selected().unwrap_or(0) };
-
         let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+        let selected_set = if app_state.is_left_active { &app_state.selected_left } else { &app_state.selected_right };
 
-        if selected_index < children.len() {
-            let item = &children[selected_index];
-            // Don't allow deleting ".." parent directory entry
-            if item.name == ".." {
+        let items: Vec<(String, bool)> = if !selected_set.is_empty() {
+            selected_set.iter()
+                .filter_map(|&idx| children.get(idx))
+                .filter(|item| item.name != "..")
+                .map(|item| (item.name_full.clone(), item.is_dir))
+                .collect()
+        } else {
+            let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap_or(0) } else { app_state.state_right.selected().unwrap_or(0) };
+            if selected_index < children.len() {
+                let item = &children[selected_index];
+                if item.name == ".." {
+                    app_state.is_f8_displayed = false;
+                    return;
+                }
+                vec![(item.name_full.clone(), item.is_dir)]
+            } else {
                 app_state.is_f8_displayed = false;
                 return;
             }
-            app_state.delete_item_name = item.name_full.clone();
-            app_state.delete_item_is_dir = item.is_dir;
-        } else {
+        };
+
+        if items.is_empty() {
             app_state.is_f8_displayed = false;
+            return;
         }
+
+        app_state.delete_items = items;
     } else {
         app_state.reset_delete();
     }
 }
 
 fn handle_delete_confirm(app_state: &mut AppState) {
-    let parent_path = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+    let parent_path = if app_state.is_left_active { app_state.dir_left.clone() } else { app_state.dir_right.clone() };
+    let items = std::mem::take(&mut app_state.delete_items);
 
-    let mut item_path = parent_path.clone();
-    item_path.push(&app_state.delete_item_name);
+    for (name, is_dir) in &items {
+        let item_path = parent_path.join(name);
+        if let Err(e) = delete_path(item_path, *is_dir) {
+            app_state.display_error(e.to_string());
+            app_state.reset_delete();
+            return;
+        }
+    }
 
-    match delete_path(item_path, app_state.delete_item_is_dir) {
-        Ok(_) => {
-            // Reload the directory
-            let current_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
-
-            match load_directory_rows(current_dir) {
-                Ok(items) => {
-                    if app_state.is_left_active {
-                        app_state.children_left = items;
-                        // Adjust selection if needed
-                        let len = app_state.children_left.len();
-                        if let Some(selected) = app_state.state_left.selected() {
-                            if selected >= len {
-                                app_state.state_left.select(Some(len.saturating_sub(1)));
-                            }
-                        }
-                    } else {
-                        app_state.children_right = items;
-                        let len = app_state.children_right.len();
-                        if let Some(selected) = app_state.state_right.selected() {
-                            if selected >= len {
-                                app_state.state_right.select(Some(len.saturating_sub(1)));
-                            }
-                        }
+    // Reload the directory
+    match load_directory_rows(&parent_path) {
+        Ok(new_items) => {
+            if app_state.is_left_active {
+                app_state.children_left = new_items;
+                let len = app_state.children_left.len();
+                if let Some(selected) = app_state.state_left.selected() {
+                    if selected >= len {
+                        app_state.state_left.select(Some(len.saturating_sub(1)));
                     }
                 }
-                Err(e) => app_state.display_error(e.to_string()),
+            } else {
+                app_state.children_right = new_items;
+                let len = app_state.children_right.len();
+                if let Some(selected) = app_state.state_right.selected() {
+                    if selected >= len {
+                        app_state.state_right.select(Some(len.saturating_sub(1)));
+                    }
+                }
             }
         }
         Err(e) => app_state.display_error(e.to_string()),
     }
 
+    app_state.clear_active_selections();
     app_state.reset_delete();
 }
 
@@ -754,90 +769,73 @@ fn toggle_copy(app_state: &mut AppState) {
     app_state.is_f5_displayed = !app_state.is_f5_displayed;
 
     if app_state.is_f5_displayed {
-        let selected_index = if app_state.is_left_active {
-            app_state.state_left.selected().unwrap_or(0)
-        } else {
-            app_state.state_right.selected().unwrap_or(0)
-        };
+        let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+        let selected_set = if app_state.is_left_active { &app_state.selected_left } else { &app_state.selected_right };
+        let source_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+        let dest_dir = if app_state.is_left_active { &app_state.dir_right } else { &app_state.dir_left };
 
-        let children = if app_state.is_left_active {
-            &app_state.children_left
+        let items: Vec<(PathBuf, PathBuf, bool)> = if !selected_set.is_empty() {
+            selected_set.iter()
+                .filter_map(|&idx| children.get(idx))
+                .filter(|item| item.name != "..")
+                .map(|item| (source_dir.join(&item.name_full), dest_dir.join(&item.name_full), item.is_dir))
+                .collect()
         } else {
-            &app_state.children_right
-        };
-
-        if selected_index < children.len() {
-            let item = &children[selected_index];
-            // Don't allow copying ".." parent directory entry
-            if item.name == ".." {
+            let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap_or(0) } else { app_state.state_right.selected().unwrap_or(0) };
+            if selected_index < children.len() {
+                let item = &children[selected_index];
+                if item.name == ".." {
+                    app_state.is_f5_displayed = false;
+                    return;
+                }
+                vec![(source_dir.join(&item.name_full), dest_dir.join(&item.name_full), item.is_dir)]
+            } else {
                 app_state.is_f5_displayed = false;
                 return;
             }
+        };
 
-            // Source path from active panel
-            let source_dir = if app_state.is_left_active {
-                &app_state.dir_left
-            } else {
-                &app_state.dir_right
-            };
-            let mut source_path = source_dir.clone();
-            source_path.push(&item.name_full);
-
-            // Destination path to opposite panel
-            let dest_dir = if app_state.is_left_active {
-                &app_state.dir_right
-            } else {
-                &app_state.dir_left
-            };
-            let mut dest_path = dest_dir.clone();
-            dest_path.push(&item.name_full);
-
-            app_state.copy_source_path = source_path;
-            app_state.copy_dest_path = dest_path;
-            app_state.copy_is_dir = item.is_dir;
-        } else {
+        if items.is_empty() {
             app_state.is_f5_displayed = false;
+            return;
         }
+
+        app_state.copy_items = items;
     } else {
         app_state.reset_copy();
     }
 }
 
 fn handle_copy_confirm(app_state: &mut AppState) {
-    let source = app_state.copy_source_path.clone();
-    let dest = app_state.copy_dest_path.clone();
-    let is_dir = app_state.copy_is_dir;
+    let items = std::mem::take(&mut app_state.copy_items);
 
-    // Check if destination already exists
-    if dest.exists() {
-        app_state.display_error(format!("Destination already exists: {}", dest.display()));
-        app_state.reset_copy();
-        return;
+    for (source, dest, is_dir) in &items {
+        if dest.exists() {
+            app_state.display_error(format!("Destination already exists: {}", dest.display()));
+            app_state.reset_copy();
+            return;
+        }
+        if let Err(e) = copy_path(source.clone(), dest.clone(), *is_dir) {
+            app_state.display_error(e.to_string());
+            app_state.reset_copy();
+            return;
+        }
     }
 
-    match copy_path(source, dest, is_dir) {
-        Ok(_) => {
-            // Reload the destination panel (opposite of active)
-            let dest_dir = if app_state.is_left_active {
-                &app_state.dir_right
+    // Reload the destination panel (opposite of active)
+    let dest_dir = if app_state.is_left_active { app_state.dir_right.clone() } else { app_state.dir_left.clone() };
+    match load_directory_rows(&dest_dir) {
+        Ok(new_items) => {
+            if app_state.is_left_active {
+                app_state.children_right = new_items;
             } else {
-                &app_state.dir_left
-            };
-
-            match load_directory_rows(dest_dir) {
-                Ok(items) => {
-                    if app_state.is_left_active {
-                        app_state.children_right = items;
-                    } else {
-                        app_state.children_left = items;
-                    }
-                }
-                Err(e) => app_state.display_error(e.to_string()),
+                app_state.children_left = new_items;
             }
         }
         Err(e) => app_state.display_error(e.to_string()),
     }
 
+    app_state.clear_active_selections();
     app_state.reset_copy();
 }
 
@@ -849,121 +847,98 @@ fn toggle_move(app_state: &mut AppState) {
     app_state.is_f6_displayed = !app_state.is_f6_displayed;
 
     if app_state.is_f6_displayed {
-        let selected_index = if app_state.is_left_active {
-            app_state.state_left.selected().unwrap_or(0)
-        } else {
-            app_state.state_right.selected().unwrap_or(0)
-        };
+        let children = if app_state.is_left_active { &app_state.children_left } else { &app_state.children_right };
+        let selected_set = if app_state.is_left_active { &app_state.selected_left } else { &app_state.selected_right };
+        let source_dir = if app_state.is_left_active { &app_state.dir_left } else { &app_state.dir_right };
+        let dest_dir = if app_state.is_left_active { &app_state.dir_right } else { &app_state.dir_left };
 
-        let children = if app_state.is_left_active {
-            &app_state.children_left
+        let items: Vec<(PathBuf, PathBuf, bool)> = if !selected_set.is_empty() {
+            selected_set.iter()
+                .filter_map(|&idx| children.get(idx))
+                .filter(|item| item.name != "..")
+                .map(|item| (source_dir.join(&item.name_full), dest_dir.join(&item.name_full), item.is_dir))
+                .collect()
         } else {
-            &app_state.children_right
-        };
-
-        if selected_index < children.len() {
-            let item = &children[selected_index];
-            // Don't allow moving ".." parent directory entry
-            if item.name == ".." {
+            let selected_index = if app_state.is_left_active { app_state.state_left.selected().unwrap_or(0) } else { app_state.state_right.selected().unwrap_or(0) };
+            if selected_index < children.len() {
+                let item = &children[selected_index];
+                if item.name == ".." {
+                    app_state.is_f6_displayed = false;
+                    return;
+                }
+                vec![(source_dir.join(&item.name_full), dest_dir.join(&item.name_full), item.is_dir)]
+            } else {
                 app_state.is_f6_displayed = false;
                 return;
             }
+        };
 
-            // Source path from active panel
-            let source_dir = if app_state.is_left_active {
-                &app_state.dir_left
-            } else {
-                &app_state.dir_right
-            };
-            let mut source_path = source_dir.clone();
-            source_path.push(&item.name_full);
-
-            // Destination path to opposite panel
-            let dest_dir = if app_state.is_left_active {
-                &app_state.dir_right
-            } else {
-                &app_state.dir_left
-            };
-            let mut dest_path = dest_dir.clone();
-            dest_path.push(&item.name_full);
-
-            app_state.move_source_path = source_path;
-            app_state.move_dest_path = dest_path;
-            app_state.move_is_dir = item.is_dir;
-        } else {
+        if items.is_empty() {
             app_state.is_f6_displayed = false;
+            return;
         }
+
+        app_state.move_items = items;
     } else {
         app_state.reset_move();
     }
 }
 
 fn handle_move_confirm(app_state: &mut AppState) {
-    let source = app_state.move_source_path.clone();
-    let dest = app_state.move_dest_path.clone();
-    let is_dir = app_state.move_is_dir;
+    let items = std::mem::take(&mut app_state.move_items);
+    let source_dir = if app_state.is_left_active { app_state.dir_left.clone() } else { app_state.dir_right.clone() };
+    let dest_dir = if app_state.is_left_active { app_state.dir_right.clone() } else { app_state.dir_left.clone() };
 
-    // Check if destination already exists
-    if dest.exists() {
-        app_state.display_error(format!("Destination already exists: {}", dest.display()));
-        app_state.reset_move();
-        return;
+    for (source, dest, is_dir) in &items {
+        if dest.exists() {
+            app_state.display_error(format!("Destination already exists: {}", dest.display()));
+            app_state.reset_move();
+            return;
+        }
+        if let Err(e) = move_path(source.clone(), dest.clone(), *is_dir) {
+            app_state.display_error(e.to_string());
+            app_state.reset_move();
+            return;
+        }
     }
 
-    // Clone paths before move to avoid borrow issues
-    let source_dir = if app_state.is_left_active {
-        app_state.dir_left.clone()
-    } else {
-        app_state.dir_right.clone()
-    };
-    let dest_dir = if app_state.is_left_active {
-        app_state.dir_right.clone()
-    } else {
-        app_state.dir_left.clone()
-    };
-
-    match move_path(source, dest, is_dir) {
-        Ok(_) => {
-            // Reload source panel
-            match load_directory_rows(&source_dir) {
-                Ok(items) => {
-                    if app_state.is_left_active {
-                        app_state.children_left = items;
-                        // Adjust selection if needed
-                        let len = app_state.children_left.len();
-                        if let Some(selected) = app_state.state_left.selected() {
-                            if selected >= len {
-                                app_state.state_left.select(Some(len.saturating_sub(1)));
-                            }
-                        }
-                    } else {
-                        app_state.children_right = items;
-                        let len = app_state.children_right.len();
-                        if let Some(selected) = app_state.state_right.selected() {
-                            if selected >= len {
-                                app_state.state_right.select(Some(len.saturating_sub(1)));
-                            }
-                        }
+    // Reload source panel
+    match load_directory_rows(&source_dir) {
+        Ok(new_items) => {
+            if app_state.is_left_active {
+                app_state.children_left = new_items;
+                let len = app_state.children_left.len();
+                if let Some(selected) = app_state.state_left.selected() {
+                    if selected >= len {
+                        app_state.state_left.select(Some(len.saturating_sub(1)));
                     }
                 }
-                Err(e) => app_state.display_error(e.to_string()),
-            }
-
-            // Reload destination panel
-            match load_directory_rows(&dest_dir) {
-                Ok(items) => {
-                    if app_state.is_left_active {
-                        app_state.children_right = items;
-                    } else {
-                        app_state.children_left = items;
+            } else {
+                app_state.children_right = new_items;
+                let len = app_state.children_right.len();
+                if let Some(selected) = app_state.state_right.selected() {
+                    if selected >= len {
+                        app_state.state_right.select(Some(len.saturating_sub(1)));
                     }
                 }
-                Err(e) => app_state.display_error(e.to_string()),
             }
         }
         Err(e) => app_state.display_error(e.to_string()),
     }
 
+    // Reload destination panel
+    match load_directory_rows(&dest_dir) {
+        Ok(new_items) => {
+            if app_state.is_left_active {
+                app_state.children_right = new_items;
+            } else {
+                app_state.children_left = new_items;
+            }
+        }
+        Err(e) => app_state.display_error(e.to_string()),
+    }
+
+    app_state.clear_active_selections();
     app_state.reset_move();
 }
 

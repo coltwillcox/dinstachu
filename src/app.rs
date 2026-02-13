@@ -24,8 +24,7 @@ pub struct AppState {
     pub create_input: String,
     pub create_character_index: usize,
     pub is_f8_displayed: bool,
-    pub delete_item_name: String,
-    pub delete_item_is_dir: bool,
+    pub delete_items: Vec<(String, bool)>,
     pub search_input: String,
     pub cached_clock: String,
     pub cached_separator_height: u16,
@@ -37,13 +36,9 @@ pub struct AppState {
     pub editor_state: Option<EditorState>,
     pub editor_viewport_height: usize,
     pub is_f5_displayed: bool,
-    pub copy_source_path: PathBuf,
-    pub copy_dest_path: PathBuf,
-    pub copy_is_dir: bool,
+    pub copy_items: Vec<(PathBuf, PathBuf, bool)>,
     pub is_f6_displayed: bool,
-    pub move_source_path: PathBuf,
-    pub move_dest_path: PathBuf,
-    pub move_is_dir: bool,
+    pub move_items: Vec<(PathBuf, PathBuf, bool)>,
     pub selected_left: HashSet<usize>,
     pub selected_right: HashSet<usize>,
     pub dir_sizes: HashMap<PathBuf, u64>,
@@ -113,8 +108,7 @@ impl AppState {
             create_input: String::new(),
             create_character_index: 0,
             is_f8_displayed: false,
-            delete_item_name: String::new(),
-            delete_item_is_dir: false,
+            delete_items: Vec::new(),
             search_input: String::new(),
             cached_clock: String::new(),
             cached_separator_height: 0,
@@ -126,13 +120,9 @@ impl AppState {
             editor_state: None,
             editor_viewport_height: 0,
             is_f5_displayed: false,
-            copy_source_path: PathBuf::new(),
-            copy_dest_path: PathBuf::new(),
-            copy_is_dir: false,
+            copy_items: Vec::new(),
             is_f6_displayed: false,
-            move_source_path: PathBuf::new(),
-            move_dest_path: PathBuf::new(),
-            move_is_dir: false,
+            move_items: Vec::new(),
             selected_left: HashSet::new(),
             selected_right: HashSet::new(),
             dir_sizes: HashMap::new(),
@@ -346,8 +336,7 @@ impl AppState {
 
     pub fn reset_delete(&mut self) {
         self.is_f8_displayed = false;
-        self.delete_item_name.clear();
-        self.delete_item_is_dir = false;
+        self.delete_items.clear();
     }
 
     pub fn open_viewer(&mut self, file_path: PathBuf) -> Result<(), String> {
@@ -628,16 +617,12 @@ impl AppState {
 
     pub fn reset_copy(&mut self) {
         self.is_f5_displayed = false;
-        self.copy_source_path = PathBuf::new();
-        self.copy_dest_path = PathBuf::new();
-        self.copy_is_dir = false;
+        self.copy_items.clear();
     }
 
     pub fn reset_move(&mut self) {
         self.is_f6_displayed = false;
-        self.move_source_path = PathBuf::new();
-        self.move_dest_path = PathBuf::new();
-        self.move_is_dir = false;
+        self.move_items.clear();
     }
 
     pub fn toggle_selection(&mut self) {

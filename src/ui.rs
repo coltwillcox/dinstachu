@@ -634,10 +634,15 @@ fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
 }
 
 fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
+    let count = app_state.delete_items.len();
     let popup_area = centered_rect(60, 30, area);
 
-    let item_type = if app_state.delete_item_is_dir { "directory" } else { "file" };
-    let title = format!(" Delete {} ", item_type);
+    let title = if count == 1 {
+        let item_type = if app_state.delete_items[0].1 { "directory" } else { "file" };
+        format!(" Delete {} ", item_type)
+    } else {
+        format!(" Delete {} items ", count)
+    };
 
     let popup_block = Block::default()
         .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
@@ -648,7 +653,12 @@ fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
     f.render_widget(popup_block, popup_area);
 
     // Message
-    let message = format!("Delete \"{}\"?", app_state.delete_item_name);
+    let message = if count == 1 {
+        format!("Delete \"{}\"?", app_state.delete_items[0].0)
+    } else {
+        let names: Vec<&str> = app_state.delete_items.iter().map(|(name, _)| name.as_str()).collect();
+        format!("Delete {} items?\n\n{}", count, names.join(", "))
+    };
     f.render_widget(Paragraph::new(message).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)), popup_area.inner(Margin { vertical: 3, horizontal: 2 }));
 
     // Instructions
@@ -660,9 +670,14 @@ fn render_delete_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
 
 fn render_copy_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
     let popup_area = centered_rect(70, 35, area);
+    let count = app_state.copy_items.len();
 
-    let item_type = if app_state.copy_is_dir { "directory" } else { "file" };
-    let title = format!(" Copy {} ", item_type);
+    let title = if count == 1 {
+        let item_type = if app_state.copy_items[0].2 { "directory" } else { "file" };
+        format!(" Copy {} ", item_type)
+    } else {
+        format!(" Copy {} items ", count)
+    };
 
     let popup_block = Block::default()
         .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
@@ -672,17 +687,30 @@ fn render_copy_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppStat
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
 
-    // Source path
-    let source_name = app_state.copy_source_path.file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("Unknown");
+    // Source info
+    let source_msg = if count == 1 {
+        let source_name = app_state.copy_items[0].0.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown");
+        format!("Copy \"{}\"", source_name)
+    } else {
+        let names: Vec<&str> = app_state.copy_items.iter()
+            .filter_map(|(src, _, _)| src.file_name().and_then(|n| n.to_str()))
+            .collect();
+        format!("Copy {} items: {}", count, names.join(", "))
+    };
     f.render_widget(
-        Paragraph::new(format!("Copy \"{}\"", source_name)).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new(source_msg).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
     );
 
-    // Destination path
-    let dest_display = limit_path_string(&app_state.copy_dest_path, popup_area.width as usize - 10);
+    // Destination directory
+    let dest_dir = if count == 1 {
+        app_state.copy_items[0].1.parent().map(|p| p.to_path_buf()).unwrap_or_default()
+    } else {
+        app_state.copy_items[0].1.parent().map(|p| p.to_path_buf()).unwrap_or_default()
+    };
+    let dest_display = limit_path_string(&dest_dir, popup_area.width as usize - 10);
     f.render_widget(
         Paragraph::new(format!("to: {}", dest_display)).alignment(Alignment::Center).style(Style::default().fg(COLOR_FILE)),
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
@@ -697,9 +725,14 @@ fn render_copy_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppStat
 
 fn render_move_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) {
     let popup_area = centered_rect(70, 35, area);
+    let count = app_state.move_items.len();
 
-    let item_type = if app_state.move_is_dir { "directory" } else { "file" };
-    let title = format!(" Move {} ", item_type);
+    let title = if count == 1 {
+        let item_type = if app_state.move_items[0].2 { "directory" } else { "file" };
+        format!(" Move {} ", item_type)
+    } else {
+        format!(" Move {} items ", count)
+    };
 
     let popup_block = Block::default()
         .title(Line::from(Span::styled(title, Style::default().fg(COLOR_TITLE))).centered())
@@ -709,17 +742,26 @@ fn render_move_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppStat
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
 
-    // Source path
-    let source_name = app_state.move_source_path.file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("Unknown");
+    // Source info
+    let source_msg = if count == 1 {
+        let source_name = app_state.move_items[0].0.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown");
+        format!("Move \"{}\"", source_name)
+    } else {
+        let names: Vec<&str> = app_state.move_items.iter()
+            .filter_map(|(src, _, _)| src.file_name().and_then(|n| n.to_str()))
+            .collect();
+        format!("Move {} items: {}", count, names.join(", "))
+    };
     f.render_widget(
-        Paragraph::new(format!("Move \"{}\"", source_name)).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
+        Paragraph::new(source_msg).alignment(Alignment::Center).style(Style::default().fg(COLOR_TITLE)),
         popup_area.inner(Margin { vertical: 2, horizontal: 2 }),
     );
 
-    // Destination path
-    let dest_display = limit_path_string(&app_state.move_dest_path, popup_area.width as usize - 10);
+    // Destination directory
+    let dest_dir = app_state.move_items[0].1.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let dest_display = limit_path_string(&dest_dir, popup_area.width as usize - 10);
     f.render_widget(
         Paragraph::new(format!("to: {}", dest_display)).alignment(Alignment::Center).style(Style::default().fg(COLOR_FILE)),
         popup_area.inner(Margin { vertical: 4, horizontal: 2 }),
