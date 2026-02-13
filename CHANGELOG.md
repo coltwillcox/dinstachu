@@ -6,6 +6,17 @@ All notable changes to FM84 will be documented in this file.
 
 ---
 
+## [0.8.2] - 2026-02-13
+
+### ✨ Added
+- ↔️ **Horizontal scrolling in Viewer** - Left/Right arrow keys and mouse scroll wheel scroll content horizontally
+- ↔️ **Horizontal auto-scroll in Editor** - viewport follows cursor past the right edge; Home key resets horizontal scroll
+- 🖱️ **Mouse horizontal scroll** - ScrollLeft/ScrollRight events scroll content in Viewer and Editor
+- 🖱️ **Mouse vertical scroll in Editor** - scroll wheel moves viewport without moving cursor; cursor position is preserved even when offscreen
+- 🖱️ **Mouse click in Editor** - click anywhere in the content area to position cursor, accounting for scroll offsets and tab expansion
+
+---
+
 ## [0.8.1] - 2026-02-13
 
 ### 🛠️ Changed

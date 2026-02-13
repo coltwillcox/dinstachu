@@ -13,7 +13,7 @@
 
 > 💜 *A synthwave-infused dual-pane TUI file manager, forged in Rust* 💜
 
-**Version 0.8.1** ▀▄▀▄ *Neon Dreams Edition*
+**Version 0.8.2** ▀▄▀▄ *Neon Dreams Edition*
 
 ---
 
@@ -59,8 +59,8 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 ### 📝 File Operations
 - **F1** 💡 - Help/About
 - **F2** ✏️ - Rename files & folders
-- **F3** 👁️ - View files (bordered, plain text)
-- **F4** 📝 - Edit files with **syntax highlighting** (Ctrl+S to save, unsaved changes prompt)
+- **F3** 👁️ - View files (bordered, plain text, horizontal scrolling)
+- **F4** 📝 - Edit files with **syntax highlighting** (Ctrl+S to save, unsaved changes prompt, mouse click to position cursor)
 - **F5** 📋 - Copy to other panel (selected items or cursor item)
 - **F6** 📦 - Move to other panel (selected items or cursor item)
 - **F7** 📂 - Create new directories
@@ -80,7 +80,8 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - 📊 **Line numbers** in the gutter
 - 🔢 **Status bar** - filename, line count, file size, detected syntax
 - 🚫 **Binary detection** - won't melt your terminal with garbage
-- 🖱️ **Mouse scroll** - scroll through files with the scroll wheel
+- ↔️ **Horizontal scrolling** - Left/Right keys and mouse scroll wheel
+- 🖱️ **Mouse scroll** - vertical and horizontal scrolling with the scroll wheel
 
 ### ✍️ Editor (F4)
 - 🌈 **Syntax highlighting** for Rust, Python, JS, TS, JSON, TOML, YAML, Markdown, Shell, C/C++, HTML, CSS
@@ -89,7 +90,9 @@ Built with 💜 in **Rust** using **Ratatui** + **Crossterm**.
 - 💾 **Save** - F2 or Ctrl+S
 - 📍 **Line/Column tracking** - always know where you are
 - ⚠️ **Unsaved changes prompt** - Save/Discard/Cancel dialog on close
-- 🖱️ **Mouse scroll** - navigate with the scroll wheel
+- ↔️ **Horizontal auto-scroll** - viewport follows cursor past the right edge
+- 🖱️ **Mouse scroll** - vertical and horizontal scrolling with the scroll wheel
+- 🖱️ **Mouse click** - click to position cursor anywhere in the editor
 
 ### 📂 Directory Sizes
 - 📏 **Calculated on select** - press Space on a directory to calculate its size
@@ -212,5 +215,5 @@ The color palette channels pure 80s energy:
 <p align="center">
   <strong>💜 FM84 💜</strong><br>
   <em>Where every file operation feels like a synth drop</em><br>
-  <code>▀▄▀▄▀▄ v0.8.1 ▄▀▄▀▄▀</code>
+  <code>▀▄▀▄▀▄ v0.8.2 ▄▀▄▀▄▀</code>
 </p>
