@@ -2,7 +2,7 @@ use ratatui::style::Color;
 use ratatui::text::Span;
 use std::fs::File;
 use std::io::{Error, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -21,7 +21,7 @@ pub struct ViewerState {
     pub syntax_name: String,
 }
 
-pub fn is_binary_file(path: &PathBuf) -> Result<bool, Error> {
+pub fn is_binary_file(path: &Path) -> Result<bool, Error> {
     let mut file = File::open(path)?;
     let mut buffer = [0; 512];
     let bytes_read = file.read(&mut buffer)?;
@@ -37,15 +37,18 @@ pub fn is_binary_file(path: &PathBuf) -> Result<bool, Error> {
         .or(Ok(true))
 }
 
-pub fn load_file_content(path: &PathBuf) -> Result<ViewerState, Error> {
+pub fn load_file_content(path: &Path) -> Result<ViewerState, Error> {
+    // Get metadata once (single stat syscall)
+    let file_size = std::fs::metadata(path)?.len();
+
     // Check binary first
     if is_binary_file(path)? {
         return Ok(ViewerState {
-            file_path: path.clone(),
+            file_path: path.to_path_buf(),
             content_lines: vec!["Binary file detected.".to_string()],
             scroll_offset: 0,
             total_lines: 1,
-            file_size: std::fs::metadata(path)?.len(),
+            file_size,
             is_binary: true,
             syntax_name: "Binary".to_string(),
         });
@@ -55,11 +58,10 @@ pub fn load_file_content(path: &PathBuf) -> Result<ViewerState, Error> {
     let content = std::fs::read_to_string(path)?;
     let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let total_lines = lines.len().max(1); // At least 1 line for empty files
-    let file_size = std::fs::metadata(path)?.len();
     let syntax_name = detect_syntax(path);
 
     Ok(ViewerState {
-        file_path: path.clone(),
+        file_path: path.to_path_buf(),
         content_lines: lines,
         scroll_offset: 0,
         total_lines,
@@ -69,7 +71,7 @@ pub fn load_file_content(path: &PathBuf) -> Result<ViewerState, Error> {
     })
 }
 
-pub fn detect_syntax(path: &PathBuf) -> String {
+pub fn detect_syntax(path: &Path) -> String {
     match path.extension().and_then(|s| s.to_str()) {
         Some("rs") => "Rust".to_string(),
         Some("py") => "Python".to_string(),
@@ -97,7 +99,7 @@ pub fn highlight_content(content: &[String], extension: &str) -> Vec<Vec<Span<'s
         .unwrap_or_else(|| ps.find_syntax_plain_text());
     let mut h = HighlightLines::new(syntax_def, &ts.themes["base16-ocean.dark"]);
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(content.len());
     for line in content {
         let ranges = h.highlight_line(line, &ps).unwrap_or_default();
         let spans: Vec<Span<'static>> = ranges

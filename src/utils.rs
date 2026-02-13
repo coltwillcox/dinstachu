@@ -1,6 +1,6 @@
 use crate::constants::*;
 use ratatui::style::Color;
-use std::path::PathBuf;
+use std::path::Path;
 
 // Converts bytes to human-readable format with binary prefixes (KiB, MiB, etc.)
 pub fn format_size(bytes: u64) -> String {
@@ -44,7 +44,7 @@ pub fn color_for_extension(ext: &str) -> Color {
     )
 }
 
-pub fn limit_path_string(path_buf: &PathBuf, n: usize) -> String {
-    let path_string = path_buf.display().to_string();
+pub fn limit_path_string(path: &Path, n: usize) -> String {
+    let path_string = path.display().to_string();
     if path_string.len() <= n { path_string } else { format!("...{}", &path_string[(path_string.len() - n)..]) }
 }

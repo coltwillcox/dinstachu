@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app_state: AppState = AppState::new();
+    let mut app_state = AppState::new();
 
     match load_directory_rows(&app_state.dir_left) {
         Ok(items) => app_state.children_left = items,
