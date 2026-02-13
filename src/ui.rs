@@ -287,7 +287,8 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
         let filename = viewer_state.file_path.file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("Unknown");
-        let title = format!(" View: {} ", filename);
+        let prefix = if viewer_state.from_edit { "Edit" } else { "View" };
+        let title = format!(" {}: {} ", prefix, filename);
 
         let border_block = Block::default()
             .title(Line::from(Span::styled(title, STYLE_TITLE)).centered())

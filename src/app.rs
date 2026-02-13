@@ -360,7 +360,15 @@ impl AppState {
     }
 
     pub fn open_editor(&mut self, file_path: PathBuf) -> Result<(), String> {
-        use crate::viewer::highlight_content;
+        use crate::viewer::{highlight_content, is_binary_file};
+
+        if is_binary_file(&file_path).unwrap_or(false) {
+            self.open_viewer(file_path)?;
+            if let Some(state) = &mut self.viewer_state {
+                state.from_edit = true;
+            }
+            return Ok(());
+        }
 
         let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
         let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();

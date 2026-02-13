@@ -19,6 +19,7 @@ pub struct ViewerState {
     pub file_size: u64,
     pub is_binary: bool,
     pub syntax_name: String,
+    pub from_edit: bool,
 }
 
 pub fn is_binary_file(path: &Path) -> Result<bool, Error> {
@@ -53,6 +54,7 @@ pub fn load_file_content(path: &Path) -> Result<ViewerState, Error> {
             file_size,
             is_binary: true,
             syntax_name: "Binary".to_string(),
+            from_edit: false,
         });
     }
 
@@ -72,6 +74,7 @@ pub fn load_file_content(path: &Path) -> Result<ViewerState, Error> {
         total_lines,
         file_size,
         is_binary: false,
+        from_edit: false,
         syntax_name,
     })
 }
