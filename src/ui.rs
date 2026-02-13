@@ -136,17 +136,10 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     // Viewport height (subtract 1 for header row)
     let viewport_height = chunks[0].height.saturating_sub(1) as usize;
 
-    // Get rename input once if in rename mode
-    let rename_input = if app_state.is_f2_displayed {
-        Some(app_state.rename_input.display_with_cursor())
-    } else {
-        None
-    };
-
     let header = make_header_row();
 
     // Build only visible rows for left panel
-    let (rows_left, offset_left) = build_viewport_rows(app_state, true, viewport_height, rename_input.as_deref());
+    let (rows_left, offset_left) = build_viewport_rows(app_state, true, viewport_height);
     let mut state_left_view = TableState::default();
     state_left_view.select(app_state.state_left.selected().map(|s| s.saturating_sub(offset_left)));
 
@@ -167,7 +160,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
     f.render_widget(separator_vertical, chunks[1]);
 
     // Build only visible rows for right panel
-    let (rows_right, offset_right) = build_viewport_rows(app_state, false, viewport_height, rename_input.as_deref());
+    let (rows_right, offset_right) = build_viewport_rows(app_state, false, viewport_height);
     let mut state_right_view = TableState::default();
     state_right_view.select(app_state.state_right.selected().map(|s| s.saturating_sub(offset_right)));
 
@@ -182,7 +175,7 @@ fn render_file_tables(f: &mut ratatui::Frame<'_>, chunk: Rect, app_state: &mut A
 }
 
 /// Build only the rows visible in the viewport, returns (rows, start_offset)
-fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usize, rename_input: Option<&str>) -> (Vec<Row<'static>>, usize) {
+fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usize) -> (Vec<Row<'static>>, usize) {
     let children = if is_left { &app_state.children_left } else { &app_state.children_right };
     let state = if is_left { &app_state.state_left } else { &app_state.state_right };
     let selected_set = if is_left { &app_state.selected_left } else { &app_state.selected_right };
@@ -229,12 +222,26 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
 
         let (dir_prefix, dir_suffix) = if child.is_dir { ("[", "]") } else { ("", "") };
 
-        let name = if is_renaming_current_item {
-            rename_input.unwrap().to_string()
+        let bracket_style = if is_selected {
+            Style::default().fg(COLOR_SELECTED_MARKER)
         } else {
-            child.name.clone()
+            Style::default().fg(COLOR_DIRECTORY_FIX)
         };
-        let extension = if is_renaming_current_item { String::new() } else { child.extension.clone() };
+
+        let (name_cell, extension) = if is_renaming_current_item {
+            // REVERSED survives Table row_highlight_style override
+            let cursor_style = text_style.add_modifier(Modifier::REVERSED);
+            let mut spans = vec![Span::styled(dir_prefix, bracket_style)];
+            spans.extend(app_state.rename_input.cursor_spans(text_style, cursor_style));
+            spans.push(Span::styled(dir_suffix, bracket_style));
+            (Cell::from(Line::from(spans)), String::new())
+        } else {
+            (Cell::from(Line::from(vec![
+                Span::styled(dir_prefix, bracket_style),
+                Span::styled(child.name.clone(), text_style),
+                Span::styled(dir_suffix, bracket_style),
+            ])), child.extension.clone())
+        };
 
         // Get size - for directories, show calculated size if available
         let size = if child.is_dir && child.name != ".." {
@@ -247,19 +254,9 @@ fn build_viewport_rows(app_state: &AppState, is_left: bool, viewport_height: usi
             child.size.clone()
         };
 
-        let bracket_style = if is_selected {
-            Style::default().fg(COLOR_SELECTED_MARKER)
-        } else {
-            Style::default().fg(COLOR_DIRECTORY_FIX)
-        };
-
         rows.push(Row::new(vec![
             Cell::from(Span::styled(icon, Style::default().fg(text_color))),
-            Cell::from(Line::from(vec![
-                Span::styled(dir_prefix, bracket_style),
-                Span::styled(name, text_style),
-                Span::styled(dir_suffix, bracket_style),
-            ])),
+            name_cell,
             border_cell.clone(),
             Cell::from(Span::styled(extension, text_style)),
             border_cell.clone(),
@@ -618,10 +615,11 @@ fn render_create_popup(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
     f.render_widget(Clear::default(), popup_area);
     f.render_widget(popup_block, popup_area);
 
-    // Show input with cursor
-    let input_display = app_state.create_input.display_with_cursor();
+    // Show input with block cursor (REVERSED so it's visible against paragraph bg)
+    let cursor_style = STYLE_TITLE.add_modifier(Modifier::REVERSED);
+    let input_line = Line::from(app_state.create_input.cursor_spans(STYLE_TITLE, cursor_style));
     f.render_widget(
-        Paragraph::new(input_display).alignment(Alignment::Center).style(STYLE_TITLE.bg(COLOR_SELECTED_BACKGROUND)),
+        Paragraph::new(input_line).alignment(Alignment::Center).style(STYLE_TITLE.bg(COLOR_SELECTED_BACKGROUND)),
         popup_area.inner(Margin { vertical: 3, horizontal: 2 }),
     );
 

@@ -1,5 +1,6 @@
 use crate::fs_ops::get_current_dir;
 use crate::viewer::ViewerState;
+use ratatui::style::Style;
 use ratatui::text::Span;
 use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
@@ -75,10 +76,20 @@ impl TextInput {
         }
     }
 
-    /// Returns text with a `_` cursor marker inserted at the cursor position.
-    pub fn display_with_cursor(&self) -> String {
-        let (p1, p2) = self.text.split_at(self.byte_index());
-        format!("{}_{}", p1, p2)
+    /// Returns styled spans with a block cursor at the cursor position.
+    pub fn cursor_spans(&self, text_style: Style, cursor_style: Style) -> Vec<Span<'static>> {
+        let byte_idx = self.byte_index();
+        let before = self.text[..byte_idx].to_string();
+        let rest = &self.text[byte_idx..];
+        let mut chars = rest.chars();
+        let cursor_char = chars.next().unwrap_or(' ');
+        let after: String = chars.collect();
+
+        vec![
+            Span::styled(before, text_style),
+            Span::styled(cursor_char.to_string(), cursor_style),
+            Span::styled(after, text_style),
+        ]
     }
 }
 
