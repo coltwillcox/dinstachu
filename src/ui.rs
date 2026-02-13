@@ -554,15 +554,18 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
         let left_pad = (total_width.saturating_sub(3) / 2).saturating_sub(left_stat_len + 1);
         let right_pad = (total_width.saturating_sub(2) / 2).saturating_sub(right_stat_len + 1);
 
+        let left_color = if app_state.is_left_active { COLOR_TITLE } else { COLOR_DIRECTORY_DARK };
+        let right_color = if app_state.is_left_active { COLOR_DIRECTORY_DARK } else { COLOR_TITLE };
+
         let status_line = vec![
             Span::styled("├─", Style::default().fg(COLOR_BORDER)),
-            Span::styled(format!(" {}", left_count), Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!(" {}", left_count), Style::default().fg(left_color)),
             Span::styled(" - ", Style::default().fg(COLOR_BORDER)),
-            Span::styled(format!("{} ", left_size), Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!("{} ", left_size), Style::default().fg(left_color)),
             Span::styled(format!("{}┴─", "─".repeat(left_pad)), Style::default().fg(COLOR_BORDER)),
-            Span::styled(format!(" {}", right_count), Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!(" {}", right_count), Style::default().fg(right_color)),
             Span::styled(" - ", Style::default().fg(COLOR_BORDER)),
-            Span::styled(format!("{} ", right_size), Style::default().fg(COLOR_TITLE)),
+            Span::styled(format!("{} ", right_size), Style::default().fg(right_color)),
             Span::styled(format!("{}┤", "─".repeat(right_pad)), Style::default().fg(COLOR_BORDER)),
         ];
         f.render_widget(Paragraph::new(Line::from(status_line)), area);
