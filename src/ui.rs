@@ -437,6 +437,27 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
     }
 }
 
+fn render_segmented_status_bar(f: &mut ratatui::Frame<'_>, area: Rect, segments: &[&str]) {
+    let mut spans = Vec::new();
+    spans.push(Span::styled("├─", STYLE_BORDER));
+    let mut used = 3usize; // "├─" (2) + "┤" (1)
+
+    for (i, &seg) in segments.iter().enumerate() {
+        if i > 0 {
+            spans.push(Span::styled("─", STYLE_BORDER));
+            used += 1;
+        }
+        let padded = format!(" {} ", seg);
+        used += padded.len();
+        spans.push(Span::styled(padded, STYLE_TITLE));
+    }
+
+    let fill = (area.width as usize).saturating_sub(used);
+    spans.push(Span::styled("─".repeat(fill), STYLE_BORDER));
+    spans.push(Span::styled("┤", STYLE_BORDER));
+    f.render_widget(Paragraph::new(Line::from(spans)), area);
+}
+
 fn render_status_bar(f: &mut ratatui::Frame<'_>, area: Rect, text: String, style: Style) {
     let text_len = text.len();
     let status_line = vec![
@@ -461,11 +482,10 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
                 .and_then(|n| n.to_str())
                 .unwrap_or("Unknown");
             let modified = if editor_state.modified { " [Modified]" } else { "" };
-            let text = format!(
-                " {}{} | Ln {}, Col {} | {} lines | F2/Ctrl+S Save | Esc Exit ",
-                filename, modified, editor_state.cursor_line + 1, editor_state.cursor_col + 1, editor_state.lines.len()
-            );
-            render_status_bar(f, area, text, status_style);
+            let name_seg = format!("{}{}", filename, modified);
+            let pos_seg = format!("Ln {}, Col {}", editor_state.cursor_line + 1, editor_state.cursor_col + 1);
+            let lines_seg = format!("{} lines", editor_state.lines.len());
+            render_segmented_status_bar(f, area, &[&name_seg, &pos_seg, &lines_seg, "F2/Ctrl+S Save", "Esc Exit"]);
         }
     } else if app_state.is_f3_displayed {
         // Show viewer status
@@ -473,12 +493,9 @@ fn render_bottom_panel(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppSt
             let filename = viewer_state.file_path.file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("Unknown");
-            let text = format!(
-                " {} | Line {}/{} | {} | {} ",
-                filename, viewer_state.scroll_offset + 1, viewer_state.total_lines,
-                format_size(viewer_state.file_size), viewer_state.syntax_name
-            );
-            render_status_bar(f, area, text, status_style);
+            let line_seg = format!("Line {}/{}", viewer_state.scroll_offset + 1, viewer_state.total_lines);
+            let size_seg = format_size(viewer_state.file_size);
+            render_segmented_status_bar(f, area, &[filename, &line_seg, &size_seg, &viewer_state.syntax_name]);
         }
     } else if !app_state.search_input.is_empty() {
         // Show search string
