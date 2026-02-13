@@ -335,7 +335,9 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
                 .collect();
 
             let content_para =
-                Paragraph::new(content_lines).style(STYLE_FILE);
+                Paragraph::new(content_lines)
+                    .style(STYLE_FILE)
+                    .scroll((0, viewer_state.horizontal_offset as u16));
             f.render_widget(content_para, chunks[1]);
         }
 
@@ -345,8 +347,8 @@ fn render_viewer(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
     }
 }
 
-fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -> usize {
-    if let Some(editor_state) = &app_state.editor_state {
+fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &mut AppState) -> usize {
+    if let Some(editor_state) = &mut app_state.editor_state {
         let filename = editor_state.file_path.file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("Unknown");
@@ -390,6 +392,21 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
             .style(Style::default().bg(ratatui::style::Color::Black));
         f.render_widget(line_number_para, chunks[0]);
 
+        // Auto-scroll horizontally to keep cursor visible
+        let visual_cursor_col: usize = editor_state.lines[editor_state.cursor_line]
+            .chars()
+            .take(editor_state.cursor_col)
+            .map(|c| if c == '\t' { TAB_SPACES.len() } else { 1 })
+            .sum();
+        let viewport_width = chunks[1].width as usize;
+        if visual_cursor_col < editor_state.horizontal_offset {
+            editor_state.horizontal_offset = visual_cursor_col;
+        }
+        if visual_cursor_col >= editor_state.horizontal_offset + viewport_width {
+            editor_state.horizontal_offset = visual_cursor_col - viewport_width + 1;
+        }
+        let h_offset = editor_state.horizontal_offset;
+
         // Render content with cursor and syntax highlighting
         let has_highlighting = !editor_state.highlighted_lines.is_empty();
         let cursor_style = Style::default().fg(COLOR_SELECTED_FOREGROUND).bg(COLOR_SELECTED_BACKGROUND);
@@ -428,7 +445,8 @@ fn render_editor(f: &mut ratatui::Frame<'_>, area: Rect, app_state: &AppState) -
             }
         }
 
-        let content_para = Paragraph::new(content_lines);
+        let content_para = Paragraph::new(content_lines)
+            .scroll((0, h_offset as u16));
         f.render_widget(content_para, chunks[1]);
 
         viewport_height

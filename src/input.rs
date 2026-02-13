@@ -58,6 +58,8 @@ pub fn handle_input(app_state: &mut AppState) -> Result<bool> {
                         KeyCode::F(10) => return Ok(false),
                         KeyCode::Down => app_state.viewer_scroll_down(),
                         KeyCode::Up => app_state.viewer_scroll_up(),
+                        KeyCode::Left => app_state.viewer_scroll_left(),
+                        KeyCode::Right => app_state.viewer_scroll_right(),
                         KeyCode::PageDown => app_state.viewer_page_down(),
                         KeyCode::PageUp => app_state.viewer_page_up(),
                         KeyCode::Home => app_state.viewer_home(),

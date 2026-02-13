@@ -141,6 +141,7 @@ pub struct EditorState {
     pub cursor_line: usize,
     pub cursor_col: usize,
     pub scroll_offset: usize,
+    pub horizontal_offset: usize,
     pub modified: bool,
 }
 
@@ -350,6 +351,19 @@ impl AppState {
     pub fn viewer_home(&mut self) {
         if let Some(state) = &mut self.viewer_state {
             state.scroll_offset = 0;
+            state.horizontal_offset = 0;
+        }
+    }
+
+    pub fn viewer_scroll_left(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            state.horizontal_offset = state.horizontal_offset.saturating_sub(1);
+        }
+    }
+
+    pub fn viewer_scroll_right(&mut self) {
+        if let Some(state) = &mut self.viewer_state {
+            state.horizontal_offset += 1;
         }
     }
 
@@ -388,6 +402,7 @@ impl AppState {
             cursor_line: 0,
             cursor_col: 0,
             scroll_offset: 0,
+            horizontal_offset: 0,
             modified: false,
         });
         self.is_f4_displayed = true;
