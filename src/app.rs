@@ -363,8 +363,13 @@ impl AppState {
         use crate::viewer::highlight_content;
 
         let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-        let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-        let lines = if lines.is_empty() { vec![String::new()] } else { lines };
+        let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+        if content.ends_with('\n') {
+            lines.push(String::new());
+        }
+        if lines.is_empty() {
+            lines.push(String::new());
+        }
         let extension = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
         let highlighted_lines = highlight_content(&lines, extension);
 

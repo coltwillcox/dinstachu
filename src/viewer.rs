@@ -56,7 +56,10 @@ pub fn load_file_content(path: &Path) -> Result<ViewerState, Error> {
 
     // Load text file
     let content = std::fs::read_to_string(path)?;
-    let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    if content.ends_with('\n') {
+        lines.push(String::new());
+    }
     let total_lines = lines.len().max(1); // At least 1 line for empty files
     let syntax_name = detect_syntax(path);
 
